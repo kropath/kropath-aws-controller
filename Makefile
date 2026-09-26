@@ -425,6 +425,10 @@ test-codeartifact: ## Run CodeArtifact cascade Chainsaw suite (ctrl-codeartifact
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/codeartifact/ctrl-codeartifact-01/ $(CHAINSAW_FLAGS)
 
+test-appscaling: ## Run AppScaling cascade Chainsaw suite (ctrl-appscaling-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/appscaling/ctrl-appscaling-01/ $(CHAINSAW_FLAGS)
+
 test-version: ## Run build-info and feature-enabled metrics Chainsaw suite (ctrl-version-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/version/ctrl-version-01/ $(CHAINSAW_FLAGS)

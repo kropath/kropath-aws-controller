@@ -1,0 +1,69 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-appscaling-01 Chainsaw integration tests — AC-9, AC-10, AC-11, AC-12
+# (aws-appscaling-01-appscalingconfig.md).
+#
+# Requires a kind cluster with kropath-operator running and the fixture CRDs
+# applied (`make chainsaw-start chainsaw-wait`, or just `make test-appscaling`
+# against an already-running controller).
+#
+# Test isolation — unique-name-per-step, no inter-step deletes:
+#   Each AC owns a distinct resource name (acN-appscaling-policy) and its own
+#   global/app namespace pair. The controller resolves a config's global
+#   counterpart by *name* — a per-AC name isolates each AC completely.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-appscaling-01
+spec:
+  description: "AppScaling effectiveConfig cascade — AC-9, AC-10, AC-11, AC-12 (ctrl-appscaling-01)"
+  steps:
+    # AC-9: KropathConfig.mandatory.appScaling.minCapacity (level 1) flows to
+    # effCfg.mandatory.minCapacity.
+    - name: ac09-kropathconfig-mandatory-override
+      try:
+        - apply:
+            file: ac09-setup.yaml
+        - assert:
+            file: ac09-assert.yaml
+            timeout: 30s
+
+    # AC-10: KropathConfig.mandatory.tags + AppScalingConfig.mandatory.tags merge additively.
+    - name: ac10-tag-merge-cascade
+      try:
+        - apply:
+            file: ac10-setup.yaml
+        - assert:
+            file: ac10-assert.yaml
+            timeout: 30s
+
+    # AC-11: AppScalingConfig.mandatory.syncedLabels flows to effCfg.mandatory.syncedLabels.
+    - name: ac11-synced-labels-cascade
+      try:
+        - apply:
+            file: ac11-setup.yaml
+        - assert:
+            file: ac11-assert.yaml
+            timeout: 30s
+
+    # AC-12: mandatory.minCapacity > mandatory.maxCapacity sets Valid=False,
+    # reason=InvalidCapacityRange, and withholds status.effectiveConfig.
+    - name: ac12-invalid-capacity-range
+      try:
+        - apply:
+            file: ac12-setup.yaml
+        - assert:
+            file: ac12-assert.yaml
+            timeout: 30s
