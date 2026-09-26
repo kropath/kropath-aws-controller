@@ -1,0 +1,71 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-ses-01 Chainsaw integration tests — AC-3, AC-5, AC-6, AC-7
+# (aws-ses-01-sesconfig.md).
+#
+# Requires a kind cluster with kropath-operator running and the fixture CRDs
+# applied (`make chainsaw-start chainsaw-wait`, or just `make test-ses`
+# against an already-running controller).
+#
+# Test isolation — unique-name-per-step, no inter-step deletes:
+#   Each AC owns a distinct resource name (acN-ses-config) and its own global/app
+#   namespace pair. The controller resolves a config's global counterpart by
+#   *name* — a local SESConfig app-ns/acN-ses-config merges only
+#   global-ns/acN-ses-config — so a per-AC name isolates each AC completely.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-ses-01
+spec:
+  description: "SES effectiveConfig cascade — AC-3, AC-5, AC-6, AC-7 (ctrl-ses-01)"
+  steps:
+    # AC-3: KropathConfig.mandatory.tags (level 1) flows to effCfg.mandatory.tags;
+    # global SESConfig.defaults.namingTemplate (level 7) flows to effCfg.defaults
+    # when the local SESConfig sets no defaults of its own.
+    - name: ac03-effective-config-cascade
+      try:
+        - apply:
+            file: ac03-setup.yaml
+        - assert:
+            file: ac03-assert.yaml
+            timeout: 30s
+
+    # AC-5: KropathConfig.mandatory.tags + SESConfig.mandatory.tags merge additively;
+    # SESConfig.defaults.tags flows through untouched.
+    - name: ac05-config-tag-merge
+      try:
+        - apply:
+            file: ac05-setup.yaml
+        - assert:
+            file: ac05-assert.yaml
+            timeout: 30s
+
+    # AC-6: SESConfig.mandatory.syncedLabels flows to effCfg.mandatory.syncedLabels.
+    - name: ac06-config-synced-labels
+      try:
+        - apply:
+            file: ac06-setup.yaml
+        - assert:
+            file: ac06-assert.yaml
+            timeout: 30s
+
+    # AC-7: SESConfig.mandatory.syncedAnnotations flows to effCfg.mandatory.syncedAnnotations.
+    - name: ac07-config-synced-annotations
+      try:
+        - apply:
+            file: ac07-setup.yaml
+        - assert:
+            file: ac07-assert.yaml
+            timeout: 30s

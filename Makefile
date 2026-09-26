@@ -417,6 +417,10 @@ test-ram: ## Run RAM cascade Chainsaw suite (ctrl-ram-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ram/ctrl-ram-01/ $(CHAINSAW_FLAGS)
 
+test-ses: ## Run SES cascade Chainsaw suite (ctrl-ses-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/ses/ctrl-ses-01/ $(CHAINSAW_FLAGS)
+
 test-version: ## Run build-info and feature-enabled metrics Chainsaw suite (ctrl-version-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/version/ctrl-version-01/ $(CHAINSAW_FLAGS)
