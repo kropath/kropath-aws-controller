@@ -337,6 +337,10 @@ test-label-operator: ## Run label-operator Chainsaw suite (ctrl-label-op-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/label-operator/ctrl-label-op-01/ $(CHAINSAW_FLAGS)
 
+test-apigateway: ## Run API Gateway cascade Chainsaw suite (ctrl-apigw-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/apigateway/ctrl-apigw-01/ $(CHAINSAW_FLAGS)
+
 test-apigatewayv2: ## Run API Gateway v2 cascade Chainsaw suite (ctrl-apigwv2-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/apigatewayv2/ctrl-apigwv2-01/ $(CHAINSAW_FLAGS)
@@ -482,12 +486,12 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 	$(CHAINSAW) test tests/ctrl-dyn-03/ $(CHAINSAW_FLAGS)
 	# All remaining suites are order-independent.
 	$(CHAINSAW) test \
-		tests/acm/ tests/apigateway/ tests/apigatewayv2/ tests/athena/ tests/autoscaling/ \
-		tests/cloudwatch/ tests/cloudwatchlogs/ tests/dynamodb/ tests/ec2/ \
-		tests/ecr/ tests/ecs/ tests/efs/ tests/eks/ tests/elasticache/ \
+		tests/acm/ tests/apigateway/ tests/apigatewayv2/ tests/appscaling/ tests/athena/ tests/autoscaling/ \
+		tests/cloudwatch/ tests/cloudwatchlogs/ tests/codeartifact/ tests/documentdb/ tests/dynamodb/ tests/ec2/ \
+		tests/ecr/ tests/ecs/ tests/efs/ tests/eks/ tests/elasticache/ tests/elb/ \
 		tests/emr/ tests/eventbridge/ tests/features/ tests/glue/ tests/iam/ tests/kms/ \
-		tests/kropathconfig/ tests/label-operator/ tests/memorydb/ tests/msk/ tests/policy/ \
-		tests/rds/ tests/s3/ tests/s3advanced/ tests/secretsmanager/ tests/sns/ tests/sqs/ \
+		tests/kropathconfig/ tests/label-operator/ tests/memorydb/ tests/msk/ tests/mwaa/ tests/pipes/ tests/policy/ \
+		tests/ram/ tests/rds/ tests/s3/ tests/s3advanced/ tests/secretsmanager/ tests/ses/ tests/sns/ tests/sqs/ \
 		tests/stepfunctions/ tests/version/ tests/waf/ \
 		tests/organizations/ \
 		$(CHAINSAW_FLAGS)
