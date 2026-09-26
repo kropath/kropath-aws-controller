@@ -413,6 +413,10 @@ test-stepfunctions: ## Run Step Functions cascade Chainsaw suite (ctrl-sfn-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/stepfunctions/ctrl-sfn-01/ $(CHAINSAW_FLAGS)
 
+test-ram: ## Run RAM cascade Chainsaw suite (ctrl-ram-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/ram/ctrl-ram-01/ $(CHAINSAW_FLAGS)
+
 test-version: ## Run build-info and feature-enabled metrics Chainsaw suite (ctrl-version-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/version/ctrl-version-01/ $(CHAINSAW_FLAGS)
