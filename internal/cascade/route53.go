@@ -67,6 +67,12 @@ type Route53ConfigSection struct {
 	// Empty string = not enforced. Valid: "IPV4", "IPV6", "DUALSTACK".
 	ResolverEndpointType string `json:"resolverEndpointType,omitempty"`
 
+	// NamingTemplate is the resource naming template (e.g. "{namespace}-{name}").
+	// Governed only at Route53Config levels 3-4 (mandatory) and 6-7 (defaults).
+	// KropathConfig.route53 does NOT carry namingTemplate.
+	// Empty string = not enforced.
+	NamingTemplate string `json:"namingTemplate,omitempty"`
+
 	// SyncedLabels are Kubernetes labels to propagate to created Route53 resources.
 	// Additive map merge across Route53Config tiers only.
 	SyncedLabels map[string]string `json:"syncedLabels,omitempty"`
@@ -87,6 +93,7 @@ type EffectiveRoute53Section struct {
 	HealthCheckRequestInterval  int64             `json:"healthCheckRequestInterval,omitempty"`
 	HealthCheckFailureThreshold int64             `json:"healthCheckFailureThreshold,omitempty"`
 	ResolverEndpointType        string            `json:"resolverEndpointType,omitempty"`
+	NamingTemplate              string            `json:"namingTemplate,omitempty"`
 	SyncedLabels                map[string]string `json:"syncedLabels,omitempty"`
 	SyncedAnnotations           map[string]string `json:"syncedAnnotations,omitempty"`
 	Tags                        map[string]string `json:"tags,omitempty"`
@@ -153,6 +160,11 @@ func MergeRoute53Cascade(
 				globalR53CfgMandatory.ResolverEndpointType,
 				localR53CfgMandatory.ResolverEndpointType,
 			),
+			// NamingTemplate: Route53Config levels only (3, 4); KropathConfig has no namingTemplate.
+			NamingTemplate: firstNonEmptyString(
+				globalR53CfgMandatory.NamingTemplate,
+				localR53CfgMandatory.NamingTemplate,
+			),
 			// SyncedLabels: additive union from Route53Config levels only.
 			// L4 added first (lowest priority), L3 wins on key conflict.
 			SyncedLabels: mergeMaps(
@@ -196,6 +208,11 @@ func MergeRoute53Cascade(
 				globalR53CfgDefaults.ResolverEndpointType,
 				localKropathDefaults.ResolverEndpointType,
 				globalKropathDefaults.ResolverEndpointType,
+			),
+			// NamingTemplate: Route53Config levels only (6, 7).
+			NamingTemplate: firstNonEmptyString(
+				localR53CfgDefaults.NamingTemplate,
+				globalR53CfgDefaults.NamingTemplate,
 			),
 			// SyncedLabels: additive union from Route53Config levels only.
 			// L7 added first (lowest priority), L6 wins on key conflict.

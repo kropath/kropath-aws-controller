@@ -41,12 +41,12 @@ func TestMergeRoute53Cascade_AllAbsent(t *testing.T) {
 
 func TestMergeRoute53Cascade_MandatoryPriorityOrder(t *testing.T) {
 	tests := []struct {
-		name    string
-		l1, l2  Route53KropathSection
-		l3, l4  Route53ConfigSection
-		wantTTL int64
-		wantInterval int64
-		wantThreshold int64
+		name             string
+		l1, l2           Route53KropathSection
+		l3, l4           Route53ConfigSection
+		wantTTL          int64
+		wantInterval     int64
+		wantThreshold    int64
 		wantEndpointType string
 	}{
 		{
@@ -110,12 +110,12 @@ func TestMergeRoute53Cascade_MandatoryPriorityOrder(t *testing.T) {
 
 func TestMergeRoute53Cascade_DefaultsPriorityOrder(t *testing.T) {
 	tests := []struct {
-		name    string
-		l6, l7  Route53ConfigSection
-		l8, l9  Route53KropathSection
-		wantTTL int64
-		wantInterval int64
-		wantThreshold int64
+		name             string
+		l6, l7           Route53ConfigSection
+		l8, l9           Route53KropathSection
+		wantTTL          int64
+		wantInterval     int64
+		wantThreshold    int64
 		wantEndpointType string
 	}{
 		{
@@ -180,14 +180,14 @@ func TestMergeRoute53Cascade_DefaultsPriorityOrder(t *testing.T) {
 func TestMergeRoute53Cascade_TagsUnion(t *testing.T) {
 	got := MergeRoute53Cascade(
 		Route53KropathSection{Tags: map[string]string{"env": "prod", "org": "kropath"}},  // L1
-		Route53KropathSection{Tags: map[string]string{"env": "staging"}},                  // L2 — L1 wins on "env"
-		Route53ConfigSection{Tags: map[string]string{"team": "platform"}},                 // L3
-		Route53ConfigSection{Tags: map[string]string{"team": "sre", "app": "api"}},        // L4 — L3 wins on "team"
-		Route53ConfigSection{Tags: map[string]string{"cost-center": "ops"}},               // L6
-		Route53ConfigSection{Tags: map[string]string{"cost-center": "infra"}},             // L7 — L6 wins on "cost-center"
-		Route53KropathSection{Tags: map[string]string{"owner": "platform"}},               // L8
-		Route53KropathSection{Tags: map[string]string{"owner": "sre", "region": "apac"}},  // L9 — L8 wins on "owner"
-		)
+		Route53KropathSection{Tags: map[string]string{"env": "staging"}},                 // L2 — L1 wins on "env"
+		Route53ConfigSection{Tags: map[string]string{"team": "platform"}},                // L3
+		Route53ConfigSection{Tags: map[string]string{"team": "sre", "app": "api"}},       // L4 — L3 wins on "team"
+		Route53ConfigSection{Tags: map[string]string{"cost-center": "ops"}},              // L6
+		Route53ConfigSection{Tags: map[string]string{"cost-center": "infra"}},            // L7 — L6 wins on "cost-center"
+		Route53KropathSection{Tags: map[string]string{"owner": "platform"}},              // L8
+		Route53KropathSection{Tags: map[string]string{"owner": "sre", "region": "apac"}}, // L9 — L8 wins on "owner"
+	)
 
 	wantMandatoryTags := map[string]string{
 		"env":  "prod",     // L1 wins over L2
@@ -213,7 +213,7 @@ func TestMergeRoute53Cascade_SyncedLabelsUnion(t *testing.T) {
 	got := MergeRoute53Cascade(
 		Route53KropathSection{},
 		Route53KropathSection{},
-		Route53ConfigSection{SyncedLabels: map[string]string{"tier": "global", "env": "prod"}}, // L3
+		Route53ConfigSection{SyncedLabels: map[string]string{"tier": "global", "env": "prod"}},  // L3
 		Route53ConfigSection{SyncedLabels: map[string]string{"tier": "local", "app": "api"}},    // L4 — L3 wins on "tier"
 		Route53ConfigSection{SyncedLabels: map[string]string{"owner": "sre"}},                   // L6
 		Route53ConfigSection{SyncedLabels: map[string]string{"owner": "platform", "cost": "a"}}, // L7 — L6 wins on "owner"
@@ -231,8 +231,8 @@ func TestMergeRoute53Cascade_SyncedLabelsUnion(t *testing.T) {
 	}
 
 	wantDefaultsLabels := map[string]string{
-		"owner": "sre",      // L6 wins over L7
-		"cost":  "a",        // L7 only
+		"owner": "sre", // L6 wins over L7
+		"cost":  "a",   // L7 only
 	}
 	if !reflect.DeepEqual(got.Defaults.SyncedLabels, wantDefaultsLabels) {
 		t.Errorf("Defaults.SyncedLabels: got %v, want %v", got.Defaults.SyncedLabels, wantDefaultsLabels)
@@ -274,5 +274,42 @@ func TestMergeRoute53Cascade_DefaultsDoNotPolluteMandatory(t *testing.T) {
 	}
 	if got.Mandatory.ResolverEndpointType != "" {
 		t.Errorf("Mandatory.ResolverEndpointType should be empty, got %q", got.Mandatory.ResolverEndpointType)
+	}
+}
+
+// TestMergeRoute53Cascade_NamingTemplateMandatoryPriority — global Route53Config
+// (level 3) wins over local Route53Config (level 4); KropathConfig cannot set
+// namingTemplate at all (Route53Config-only field).
+func TestMergeRoute53Cascade_NamingTemplateMandatoryPriority(t *testing.T) {
+	got := MergeRoute53Cascade(
+		Route53KropathSection{},
+		Route53KropathSection{},
+		Route53ConfigSection{NamingTemplate: "{namespace}-{name}-{tag.team}"}, // level 3
+		Route53ConfigSection{NamingTemplate: "{name}-override"},               // level 4
+		Route53ConfigSection{},
+		Route53ConfigSection{},
+		Route53KropathSection{},
+		Route53KropathSection{},
+	)
+	if got.Mandatory.NamingTemplate != "{namespace}-{name}-{tag.team}" {
+		t.Errorf("Mandatory.NamingTemplate = %q, want global Route53Config value", got.Mandatory.NamingTemplate)
+	}
+}
+
+// TestMergeRoute53Cascade_NamingTemplateDefaultsPriority — local Route53Config
+// (level 6) wins over global Route53Config (level 7).
+func TestMergeRoute53Cascade_NamingTemplateDefaultsPriority(t *testing.T) {
+	got := MergeRoute53Cascade(
+		Route53KropathSection{},
+		Route53KropathSection{},
+		Route53ConfigSection{},
+		Route53ConfigSection{},
+		Route53ConfigSection{NamingTemplate: "{namespace}-{name}"}, // level 6
+		Route53ConfigSection{NamingTemplate: "{name}-{tag.env}"},   // level 7
+		Route53KropathSection{},
+		Route53KropathSection{},
+	)
+	if got.Defaults.NamingTemplate != "{namespace}-{name}" {
+		t.Errorf("Defaults.NamingTemplate = %q, want local Route53Config value", got.Defaults.NamingTemplate)
 	}
 }
