@@ -1,0 +1,75 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-elb-01 Chainsaw integration tests.
+#
+# aws-elb-01-elbconfig.md's Acceptance Criteria table (AC-1 through AC-12) covers
+# only CRD-level x-kubernetes-validations (tested in kropath-aws) and label
+# injection (AC-12, covered by the label-operator suite); it has no entry for the
+# effectiveConfig cascade merge that its own Schema Surface section documents
+# ("tags: merged: KropathConfig.mandatory.tags + ELBConfig.mandatory.tags") and
+# that internal/cascade/elb.go implements. This suite exercises that documented,
+# implemented, but un-numbered behavior directly — flagged to Spec Analyst as a
+# spec gap (every sibling *Config spec enumerates this as an AC; aws-elb-01 does
+# not) rather than silently skipped.
+#
+# Requires a kind cluster with kropath-operator running and the fixture CRDs
+# applied (`make chainsaw-start chainsaw-wait`, or just `make test-elb`
+# against an already-running controller).
+#
+# ELBConfig's CRD lives in tests/fixtures/crds-optional/ (not the default
+# tests/fixtures/crds/) because ctrl-dyn-01/02/03 need it ABSENT at operator
+# startup to test dynamic CRD detection — see docs/frequent-chainsaw-errors.md
+# §1 and controller-dynamic-crd-detection.md. That means this suite cannot
+# assume the CRD is already installed: the first step below installs it
+# in-suite (idempotent — a no-op if ctrl-dyn-02/03 already installed it),
+# so `make test-elb` is self-sufficient and order-independent.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-elb-01
+spec:
+  description: "ELB effectiveConfig cascade (ctrl-elb-01)"
+  steps:
+    # Ensure the ELBConfig CRD is installed — idempotent even if ctrl-dyn-02/03
+    # already installed it earlier in the same run.
+    - name: bootstrap-ensure-elbconfig-crd
+      try:
+        - script:
+            timeout: 60s
+            content: |
+              set -e
+              kubectl apply -f ../../fixtures/crds-optional/awselbconfig.yaml
+              kubectl wait crd/elbconfigs.aws.kropath.run \
+                --for=condition=Established --timeout=60s
+
+    # KropathConfig.mandatory.elb.deletionProtection (level 1) flows to
+    # effCfg.mandatory.deletionProtection; global ELBConfig.defaults.namingTemplate
+    # (level 7) flows to effCfg.defaults when the local CR sets no defaults of its own.
+    - name: cascade01-effective-config-merge
+      try:
+        - apply:
+            file: cascade01-setup.yaml
+        - assert:
+            file: cascade01-assert.yaml
+            timeout: 30s
+
+    # KropathConfig.mandatory.tags + ELBConfig.mandatory.tags merge additively.
+    - name: cascade02-tag-merge
+      try:
+        - apply:
+            file: cascade02-setup.yaml
+        - assert:
+            file: cascade02-assert.yaml
+            timeout: 30s

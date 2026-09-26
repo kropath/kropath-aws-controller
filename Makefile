@@ -337,6 +337,10 @@ test-label-operator: ## Run label-operator Chainsaw suite (ctrl-label-op-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/label-operator/ctrl-label-op-01/ $(CHAINSAW_FLAGS)
 
+test-apigateway: ## Run API Gateway cascade Chainsaw suite (ctrl-apigw-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/apigateway/ctrl-apigw-01/ $(CHAINSAW_FLAGS)
+
 test-apigatewayv2: ## Run API Gateway v2 cascade Chainsaw suite (ctrl-apigwv2-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/apigatewayv2/ctrl-apigwv2-01/ $(CHAINSAW_FLAGS)
@@ -413,6 +417,38 @@ test-stepfunctions: ## Run Step Functions cascade Chainsaw suite (ctrl-sfn-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/stepfunctions/ctrl-sfn-01/ $(CHAINSAW_FLAGS)
 
+test-ram: ## Run RAM cascade Chainsaw suite (ctrl-ram-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/ram/ctrl-ram-01/ $(CHAINSAW_FLAGS)
+
+test-ses: ## Run SES cascade Chainsaw suite (ctrl-ses-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/ses/ctrl-ses-01/ $(CHAINSAW_FLAGS)
+
+test-codeartifact: ## Run CodeArtifact cascade Chainsaw suite (ctrl-codeartifact-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/codeartifact/ctrl-codeartifact-01/ $(CHAINSAW_FLAGS)
+
+test-appscaling: ## Run AppScaling cascade Chainsaw suite (ctrl-appscaling-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/appscaling/ctrl-appscaling-01/ $(CHAINSAW_FLAGS)
+
+test-documentdb: ## Run DocumentDB cascade Chainsaw suite (ctrl-docdb-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/documentdb/ctrl-docdb-01/ $(CHAINSAW_FLAGS)
+
+test-elb: ## Run ELB cascade Chainsaw suite (ctrl-elb-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/elb/ctrl-elb-01/ $(CHAINSAW_FLAGS)
+
+test-mwaa: ## Run MWAA cascade Chainsaw suite (ctrl-mwaa-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/mwaa/ctrl-mwaa-01/ $(CHAINSAW_FLAGS)
+
+test-pipes: ## Run Pipes cascade Chainsaw suite (ctrl-pipes-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/pipes/ctrl-pipes-01/ $(CHAINSAW_FLAGS)
+
 test-version: ## Run build-info and feature-enabled metrics Chainsaw suite (ctrl-version-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/version/ctrl-version-01/ $(CHAINSAW_FLAGS)
@@ -450,12 +486,12 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 	$(CHAINSAW) test tests/ctrl-dyn-03/ $(CHAINSAW_FLAGS)
 	# All remaining suites are order-independent.
 	$(CHAINSAW) test \
-		tests/acm/ tests/apigateway/ tests/apigatewayv2/ tests/athena/ tests/autoscaling/ \
-		tests/cloudwatch/ tests/cloudwatchlogs/ tests/dynamodb/ tests/ec2/ \
-		tests/ecr/ tests/ecs/ tests/efs/ tests/eks/ tests/elasticache/ \
+		tests/acm/ tests/apigateway/ tests/apigatewayv2/ tests/appscaling/ tests/athena/ tests/autoscaling/ \
+		tests/cloudwatch/ tests/cloudwatchlogs/ tests/codeartifact/ tests/documentdb/ tests/dynamodb/ tests/ec2/ \
+		tests/ecr/ tests/ecs/ tests/efs/ tests/eks/ tests/elasticache/ tests/elb/ \
 		tests/emr/ tests/eventbridge/ tests/features/ tests/glue/ tests/iam/ tests/kms/ \
-		tests/kropathconfig/ tests/label-operator/ tests/memorydb/ tests/msk/ tests/policy/ \
-		tests/rds/ tests/s3/ tests/s3advanced/ tests/secretsmanager/ tests/sns/ tests/sqs/ \
+		tests/kropathconfig/ tests/label-operator/ tests/memorydb/ tests/msk/ tests/mwaa/ tests/pipes/ tests/policy/ \
+		tests/ram/ tests/rds/ tests/s3/ tests/s3advanced/ tests/secretsmanager/ tests/ses/ tests/sns/ tests/sqs/ \
 		tests/stepfunctions/ tests/version/ tests/waf/ \
 		tests/organizations/ \
 		$(CHAINSAW_FLAGS)

@@ -117,7 +117,7 @@ Each writes `status.effectiveConfig` on its `<Service>Config` CR.
 | `ACMConfig` | `ACMConfig`, `KropathConfig` | `acm/ctrl-acm` | 3 | ⏳ Pending |
 | `APIGatewayConfig` | `APIGatewayConfig`, `KropathConfig` | `apigateway/ctrl-apigw-01` | 6 | ⏳ Pending |
 | `ApiGatewayV2Config` | `ApiGatewayV2Config`, `KropathConfig` | `apigatewayv2/ctrl-apigwv2-01` | 10 | ⏳ Pending |
-| `AppScalingConfig` | `AppScalingConfig`, `KropathConfig` | **none** — see [Known gaps](#known-gaps) | — | ⏳ Pending |
+| `AppScalingConfig` | `AppScalingConfig`, `KropathConfig` | `appscaling/ctrl-appscaling-01` | 4 | ⏳ Pending |
 | `AthenaConfig` | `AthenaConfig`, `KropathConfig` | `athena/ctrl-athena-01` | 9 | ⏳ Pending |
 | `AutoScalingConfig` | `AutoScalingConfig`, `KropathConfig` | `autoscaling/ctrl-autoscaling-01` | 9 | ⏳ Pending |
 | `BackupConfig` | `BackupConfig`, `KropathConfig` | `backup/ctrl-backup-01` | 2 | ⏳ Pending |
@@ -126,9 +126,9 @@ Each writes `status.effectiveConfig` on its `<Service>Config` CR.
 | `CloudTrailConfig` | `CloudTrailConfig`, `KropathConfig` | `cloudtrail/ctrl-ct-01` | 1 | ⏳ Pending |
 | `CloudWatchConfig` | `CloudWatchConfig`, `KropathConfig` | `cloudwatch/ctrl-cw-01` | 11 | ⏳ Pending |
 | `CloudWatchLogsConfig` | `CloudWatchLogsConfig`, `KropathConfig` | `cloudwatchlogs/ctrl-cwl-01` | 11 | ⏳ Pending |
-| `CodeArtifactConfig` | `CodeArtifactConfig`, `KropathConfig` | **none** — see [Known gaps](#known-gaps) | — | ⏳ Pending |
+| `CodeArtifactConfig` | `CodeArtifactConfig`, `KropathConfig` | `codeartifact/ctrl-codeartifact-01` | 3 | ⏳ Pending |
 | `CognitoConfig` | `CognitoConfig`, `KropathConfig` | `cognito/ctrl-cognito` | 5 | ⏳ Pending |
-| `DocumentDBConfig` | `DocumentDBConfig`, `KropathConfig` | **none** — see [Known gaps](#known-gaps) | — | ⏳ Pending |
+| `DocumentDBConfig` | `DocumentDBConfig`, `KropathConfig` | `documentdb/ctrl-docdb-01` | 4 | ⏳ Pending |
 | `DSQLConfig` | `DSQLConfig`, `KropathConfig` | `dsql/ctrl-dsql-01` | 4 | ⏳ Pending |
 | `DynamoDBConfig` | `DynamoDBConfig`, `KropathConfig` | `dynamodb/ctrl-dynamodb-01` | 14 | ⏳ Pending |
 | `EC2Config` | `EC2Config`, `KropathConfig` | `ec2/ctrl-ec2-01` | 15 | ⏳ Pending |
@@ -137,7 +137,7 @@ Each writes `status.effectiveConfig` on its `<Service>Config` CR.
 | `ECSConfig` | `ECSConfig`, `KropathConfig` | `ecs/ctrl-ecs-01` | 4 | ⏳ Pending |
 | `EFSConfig` | `EFSConfig`, `KropathConfig` | `efs/ctrl-efs-01` | 10 | ⏳ Pending |
 | `EKSConfig` | `EKSConfig`, `KropathConfig` | `eks/ctrl-eks-01` | 16 | ⏳ Pending |
-| `ELBConfig` | `ELBConfig`, `KropathConfig` | **none** — see [Known gaps](#known-gaps) | — | ⏳ Pending |
+| `ELBConfig` | `ELBConfig`, `KropathConfig` | `elb/ctrl-elb-01` | 2 | ⏳ Pending |
 | `ElastiCacheConfig` | `ElastiCacheConfig`, `KropathConfig` | `elasticache/ctrl-elasticache-01` | 13 | ⏳ Pending |
 | `EMRConfig` | `EMRConfig`, `KropathConfig` | `emr/ctrl-emr-01` | 5 | ⏳ Pending |
 | `EventBridgeConfig` | `EventBridgeConfig`, `KropathConfig` | `eventbridge/ctrl-eventbridge-01` | 10 | ⏳ Pending |
@@ -151,13 +151,13 @@ Each writes `status.effectiveConfig` on its `<Service>Config` CR.
 | `MemoryDBConfig` | `MemoryDBConfig`, `KropathConfig` | `memorydb/ctrl-memorydb-01` | 12 | ⏳ Pending |
 | `MQConfig` | `MQConfig`, `KropathConfig` | `mq/ctrl-mq-01` | 12 | ⏳ Pending |
 | `MSKConfig` | `MSKConfig`, `KropathConfig` | `msk/mskconfig/ctrl-msk-01` | 3 | ⏳ Pending |
-| `MWAAConfig` | `MWAAConfig`, `KropathConfig` | **none** — see [Known gaps](#known-gaps) | — | ⏳ Pending |
+| `MWAAConfig` | `MWAAConfig`, `KropathConfig` | `mwaa/ctrl-mwaa-01` | 2 | ⏳ Pending |
 | `NetworkFirewallConfig` | `NetworkFirewallConfig`, `KropathConfig` | `networkfirewall/ctrl-nfw-01` | 11 | ⏳ Pending |
 | `OpenSearchConfig` | `OpenSearchConfig`, `KropathConfig` | `opensearch/ctrl-opensearch-cascade` | 6 | ⏳ Pending |
 | `OrganizationsConfig` | `OrganizationsConfig`, `KropathConfig` | `organizations/controller/ctrl-org-01` | 3 | ⏳ Pending |
-| `PipesConfig` | `PipesConfig`, `KropathConfig` | **none** — see [Known gaps](#known-gaps) | — | ⏳ Pending |
+| `PipesConfig` | `PipesConfig`, `KropathConfig` | `pipes/ctrl-pipes-01` | 2 | ⏳ Pending |
 | `QuickSightConfig` | `QuickSightConfig`, `KropathConfig` | `quicksight/ctrl-qs-01` | 9 | ⏳ Pending |
-| `RAMConfig` | `RAMConfig`, `KropathConfig` | **none** — see [Known gaps](#known-gaps) | — | ⏳ Pending |
+| `RAMConfig` | `RAMConfig`, `KropathConfig` | `ram/ctrl-ram-01` | 2 | ⏳ Pending |
 | `RDSConfig` | `RDSConfig`, `KropathConfig` | `rds/ctrl-rds-01` | 16 | ⏳ Pending |
 | `RecycleBinConfig` | `RecycleBinConfig`, `KropathConfig` | `recyclebin/controller/ctrl-rb-01` | 4 | ⏳ Pending |
 | `Route53Config` | `Route53Config`, `KropathConfig` | `route53/ctrl-r53-00` | 9 | ⏳ Pending |
@@ -165,7 +165,7 @@ Each writes `status.effectiveConfig` on its `<Service>Config` CR.
 | `S3Config` | `S3Config`, `KropathConfig` | `s3/ctrl-s3-01` | 13 | ⏳ Pending |
 | `SageMakerConfig` | `SageMakerConfig`, `KropathConfig` | `sagemaker/cascade/ctrl-sm-01` | 11 | ⏳ Pending |
 | `SecretsManagerConfig` | `SecretsManagerConfig`, `KropathConfig` | `secretsmanager/ctrl-secretsmanager-01` | 15 | ⏳ Pending |
-| `SESConfig` | `SESConfig`, `KropathConfig` | **none** — see [Known gaps](#known-gaps) | — | ⏳ Pending |
+| `SESConfig` | `SESConfig`, `KropathConfig` | `ses/ctrl-ses-01` | 4 | ⏳ Pending |
 | `SNSConfig` | `SNSConfig`, `KropathConfig` | `sns/ctrl-sns-01` | 13 | ⏳ Pending |
 | `SQSConfig` | `SQSConfig`, `KropathConfig` | `sqs/ctrl-sqs-01` | 13 | ⏳ Pending |
 | `SSMConfig` | `SSMConfig`, `KropathConfig` | `ssm/ctrl-ssm-cascade` | 3 | ⏳ Pending |
@@ -199,17 +199,33 @@ drifts from the code (the **Feature registry drift gate** job).
 
 ### Known gaps
 
-- **Eight reconcilers have no Chainsaw suite.** `ELBConfig`, `AppScalingConfig`,
-  `CodeArtifactConfig`, `DocumentDBConfig`, `MWAAConfig`, `PipesConfig`, `RAMConfig`, and
-  `SESConfig` each have a full reconciler, CRD type, and cascade helper registered, but none has a
-  `tests/<service>/` directory or a corresponding `test-<service>` Make target — none of the eight
-  has integration coverage. (See
-  `docs/troubleshooting-logs/2026-08-13-elbconfig-missing-crd-manager-crash.md` for the incident
-  that followed from `ELBConfig`'s CRD not being applied.)
-- **`make test-apigateway` is missing from the root `Makefile`.** `tests/apigateway/ctrl-apigw-01`
-  runs under `make test-chainsaw` (which runs `chainsaw test tests/`) and via
-  `tests/Makefile`, but there is no single-suite target at the repo root the way every other
-  service has one.
+- ~~**Eight reconcilers have no Chainsaw suite.**~~ Fixed (KRO-1259). `ELBConfig`,
+  `AppScalingConfig`, `CodeArtifactConfig`, `DocumentDBConfig`, `MWAAConfig`, `PipesConfig`,
+  `RAMConfig`, and `SESConfig` each now have a `tests/<service>/` suite and a `test-<service>`
+  root Make target (see the Feature 1 table above), wired into `make test-chainsaw`. Coverage is
+  the effectiveConfig cascade merge only — the CRD-level `x-kubernetes-validations` acceptance
+  criteria in each resource's spec are covered in `kropath-aws`, not here. `ELBConfig`'s suite
+  installs its own CRD from `tests/fixtures/crds-optional/` as an idempotent first step (see
+  `docs/troubleshooting-logs/2026-08-13-elbconfig-missing-crd-manager-crash.md` for why that CRD
+  is optional in the first place), so `make test-elb` is self-sufficient and does not depend on
+  `ctrl-dyn-01/02/03` having run first.
+
+  Three of the eight resources' specs (`aws-elb-01-elbconfig.md`, `aws-mwaa-01-mwaaconfig.md`,
+  `aws-pipes-01-pipesconfig.md`) document the effectiveConfig cascade merge in their Schema
+  Surface / Context sections but — unlike every sibling `*Config` spec — never enumerate it as a
+  numbered Acceptance Criterion. The new suites for those three test the documented behavior
+  directly under descriptive step names rather than invented AC numbers; flagged to Spec Analyst
+  as a spec gap worth a follow-up amendment.
+- ~~**`make test-apigateway` is missing from the root `Makefile`.**~~ Fixed (KRO-1259). Added,
+  matching the existing `test-apigatewayv2` pattern.
+- **`make test-chainsaw`'s "remaining suites" list is itself missing several existing suites**
+  (`cloudfront`, `cloudtrail`, `cognito`, `bedrock`, `sagemaker`, `opensearch`, `dsql`, `ssm`,
+  `keyspaces`, `quicksight`, `networkfirewall`, `backup`, `managedprometheus`, `recyclebin`,
+  `route53`, `lambda`, `ecrpublic`, `kinesis`, `mq`, `msk`, `glue`, `athena`, `emr`, `acm`,
+  `dynamodb`) — each has its own `test-<service>` target and passes standalone, but
+  `make test-chainsaw` (the CI gate) never runs them. Discovered while adding the eight suites
+  above; out of scope for this fix since it is a pre-existing, unrelated drift in the "run
+  everything" target rather than a missing suite. Worth its own follow-up ticket.
 
 ### Label injection — deviations from spec
 

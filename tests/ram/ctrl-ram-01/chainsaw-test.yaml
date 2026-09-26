@@ -1,0 +1,51 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-ram-01 Chainsaw integration tests — AC-5 and AC-6 (aws-ram-01-ramconfig.md).
+#
+# Requires a kind cluster with kropath-operator running and the fixture CRDs
+# applied (`make chainsaw-start chainsaw-wait`, or just `make test-ram`
+# against an already-running controller).
+#
+# Test isolation — unique-name-per-step, no inter-step deletes:
+#   Each AC owns a distinct resource name (acN-ram-share) and its own global/app
+#   namespace pair. The controller resolves a config's global counterpart by
+#   *name* — a local RAMConfig app-ns/acN-ram-share merges only
+#   global-ns/acN-ram-share — so a per-AC name isolates each AC completely.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-ram-01
+spec:
+  description: "RAM effectiveConfig cascade — AC-5 and AC-6 (ctrl-ram-01)"
+  steps:
+    # AC-5: KropathConfig.mandatory.ram.allowExternalPrincipals (level 1) wins on the
+    # mandatory tier; RAMConfig.defaults.allowExternalPrincipals (level 6) wins on the
+    # defaults tier — the two tiers are independent.
+    - name: ac05-effective-config-merge
+      try:
+        - apply:
+            file: ac05-setup.yaml
+        - assert:
+            file: ac05-assert.yaml
+            timeout: 30s
+
+    # AC-6: KropathConfig.mandatory.tags + RAMConfig.mandatory.tags merge additively.
+    - name: ac06-effective-config-tag-merge
+      try:
+        - apply:
+            file: ac06-setup.yaml
+        - assert:
+            file: ac06-assert.yaml
+            timeout: 30s

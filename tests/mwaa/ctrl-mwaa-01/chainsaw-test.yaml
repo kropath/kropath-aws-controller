@@ -1,0 +1,54 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-mwaa-01 Chainsaw integration tests.
+#
+# aws-mwaa-01-mwaaconfig.md's Acceptance Criteria table (AC-1 through AC-10) covers
+# only CRD-level x-kubernetes-validations and CRD-acceptance scenarios (tested in
+# kropath-aws); it has no entry for the effectiveConfig cascade merge that its own
+# "kropath-controller pre-merges all governance layers... and writes
+# status.effectiveConfig" statement (Context section) and internal/cascade/mwaa.go
+# implement. This suite exercises that documented, implemented, but un-numbered
+# behavior directly — flagged to Spec Analyst as a spec gap (every sibling
+# *Config spec enumerates this as an AC; aws-mwaa-01 does not).
+#
+# Requires a kind cluster with kropath-operator running and the fixture CRDs
+# applied (`make chainsaw-start chainsaw-wait`, or just `make test-mwaa`
+# against an already-running controller).
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-mwaa-01
+spec:
+  description: "MWAA effectiveConfig cascade (ctrl-mwaa-01)"
+  steps:
+    # KropathConfig.mandatory.mwaa.airflowVersion (level 1) flows to
+    # effCfg.mandatory.airflowVersion; global MWAAConfig.defaults.namingTemplate
+    # (level 7) flows to effCfg.defaults when the local CR sets no defaults of its own.
+    - name: cascade01-effective-config-merge
+      try:
+        - apply:
+            file: cascade01-setup.yaml
+        - assert:
+            file: cascade01-assert.yaml
+            timeout: 30s
+
+    # KropathConfig.mandatory.tags + MWAAConfig.mandatory.tags merge additively.
+    - name: cascade02-tag-merge
+      try:
+        - apply:
+            file: cascade02-setup.yaml
+        - assert:
+            file: cascade02-assert.yaml
+            timeout: 30s
