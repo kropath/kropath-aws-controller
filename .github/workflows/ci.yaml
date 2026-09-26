@@ -148,11 +148,11 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # kropath-aws#284 (KRO-1149) merged 2026-09-19; the companion ref is now
-          # cleared per the note above (a stale ref silently reverts later upstream
-          # changes -- it clobbered kropath-aws#297's KMSConfig.allowedGrantOperations
-          # in KRO-1234's CI run, see kropath-core docs/troubleshooting-logs).
-          KROPATH_AWS_COMPANION_REFS: ""
+          # kropath-aws#316 (KRO-1259) adds KropathConfig.mandatory/defaults.appScaling,
+          # not yet on main. Clear this the moment kropath-aws#316 merges -- a stale
+          # ref silently reverts later upstream changes (see kropath-aws#284/KRO-1149
+          # note in git history, and kropath-core docs/troubleshooting-logs).
+          KROPATH_AWS_COMPANION_REFS: "kro-1259-kropathconfig-appscaling"
         run: make crds-verify
 
   security:
