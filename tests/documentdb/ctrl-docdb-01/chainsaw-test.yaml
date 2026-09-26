@@ -1,0 +1,72 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-docdb-01 Chainsaw integration tests — AC-12, AC-15, AC-16, AC-17
+# (aws-docdb-01-documentdbconfig.md).
+#
+# Requires a kind cluster with kropath-operator running and the fixture CRDs
+# applied (`make chainsaw-start chainsaw-wait`, or just `make test-documentdb`
+# against an already-running controller).
+#
+# Test isolation — unique-name-per-step, no inter-step deletes:
+#   Each AC owns a distinct resource name (acN-docdb-policy) and its own global/app
+#   namespace pair. The controller resolves a config's global counterpart by
+#   *name* — a per-AC name isolates each AC completely.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-docdb-01
+spec:
+  description: "DocumentDB effectiveConfig cascade — AC-12, AC-15, AC-16, AC-17 (ctrl-docdb-01)"
+  steps:
+    # AC-12: KropathConfig.mandatory.documentdb.storageEncrypted (level 1) flows to
+    # effCfg.mandatory.storageEncrypted; global DocumentDBConfig.defaults.namingTemplate
+    # (level 7) flows to effCfg.defaults when the local CR sets no defaults of its own.
+    - name: ac12-effective-config-cascade
+      try:
+        - apply:
+            file: ac12-setup.yaml
+        - assert:
+            file: ac12-assert.yaml
+            timeout: 30s
+
+    # AC-15: mandatory.dbInstanceClass not present in mandatory.allowedInstanceClasses
+    # sets Valid=False, reason=InvalidInstanceClassNotInAllowedList, and withholds
+    # status.effectiveConfig.
+    - name: ac15-instanceclass-not-in-allowed
+      try:
+        - apply:
+            file: ac15-setup.yaml
+        - assert:
+            file: ac15-assert.yaml
+            timeout: 30s
+
+    # AC-16: KropathConfig.mandatory.tags + DocumentDBConfig.mandatory.tags merge
+    # additively; DocumentDBConfig.defaults.tags flows through untouched.
+    - name: ac16-tag-merge
+      try:
+        - apply:
+            file: ac16-setup.yaml
+        - assert:
+            file: ac16-assert.yaml
+            timeout: 30s
+
+    # AC-17: DocumentDBConfig.mandatory.syncedLabels flows to effCfg.mandatory.syncedLabels.
+    - name: ac17-synced-labels
+      try:
+        - apply:
+            file: ac17-setup.yaml
+        - assert:
+            file: ac17-assert.yaml
+            timeout: 30s
