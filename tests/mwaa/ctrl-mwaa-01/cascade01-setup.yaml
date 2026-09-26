@@ -1,0 +1,58 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# MWAAConfig/cascade01-mwaa-env in the global namespace (defaults.namingTemplate set)
+# plus MWAAConfig/cascade01-mwaa-env in the local (app) namespace (no fields of its
+# own) plus KropathConfig.mandatory.mwaa.airflowVersion — the local CR's
+# effectiveConfig picks up mandatory.airflowVersion from KropathConfig and
+# defaults.namingTemplate from the global MWAAConfig counterpart.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cascade01-mwaa-global-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cascade01-mwaa-app-ns
+  annotations:
+    aws.kropath.run/global-config-namespace: cascade01-mwaa-global-ns
+    services.k8s.aws/owner-account-id: "123456789012"
+    services.k8s.aws/default-region: "us-east-1"
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: KropathConfig
+metadata:
+  name: baseline
+  namespace: cascade01-mwaa-global-ns
+spec:
+  mandatory:
+    mwaa:
+      airflowVersion: "2.10.3"
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: MWAAConfig
+metadata:
+  name: cascade01-mwaa-env
+  namespace: cascade01-mwaa-global-ns
+spec:
+  defaults:
+    namingTemplate: "mwaa-{namespace}-{name}"
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: MWAAConfig
+metadata:
+  name: cascade01-mwaa-env
+  namespace: cascade01-mwaa-app-ns
+spec: {}

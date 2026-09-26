@@ -437,6 +437,10 @@ test-elb: ## Run ELB cascade Chainsaw suite (ctrl-elb-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/elb/ctrl-elb-01/ $(CHAINSAW_FLAGS)
 
+test-mwaa: ## Run MWAA cascade Chainsaw suite (ctrl-mwaa-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/mwaa/ctrl-mwaa-01/ $(CHAINSAW_FLAGS)
+
 test-version: ## Run build-info and feature-enabled metrics Chainsaw suite (ctrl-version-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/version/ctrl-version-01/ $(CHAINSAW_FLAGS)
