@@ -441,6 +441,10 @@ test-mwaa: ## Run MWAA cascade Chainsaw suite (ctrl-mwaa-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/mwaa/ctrl-mwaa-01/ $(CHAINSAW_FLAGS)
 
+test-pipes: ## Run Pipes cascade Chainsaw suite (ctrl-pipes-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/pipes/ctrl-pipes-01/ $(CHAINSAW_FLAGS)
+
 test-version: ## Run build-info and feature-enabled metrics Chainsaw suite (ctrl-version-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/version/ctrl-version-01/ $(CHAINSAW_FLAGS)
