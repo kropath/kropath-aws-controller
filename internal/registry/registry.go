@@ -15,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"github.com/kropath/kropath-controller/internal/metrics"
 )
 
 // BuildCtx carries what a Build function needs to construct and register its controller.
@@ -60,11 +62,19 @@ type Entry struct {
 
 // entryState holds the runtime state for a single entry.
 type entryState struct {
-	entry           Entry
-	handle          controller.Controller // non-nil once active (may be nil for multi-controller entries)
-	active          bool
-	missingKindNames []string                       // kind names of Required GVKs not yet served
+	entry            Entry
+	handle           controller.Controller // non-nil once active (may be nil for multi-controller entries)
+	active           bool
+	missingKindNames []string                         // kind names of Required GVKs not yet served
 	attachedOptional map[schema.GroupVersionKind]bool // optional kinds already watched
+
+	// pendingTimestampSet is true once this process has recorded a
+	// kropath_registry_reconciler_pending_since_timestamp_seconds child for
+	// this entry (M-17). Guards against RunGate overwriting an
+	// already-recorded pending timestamp on a later call, and is reset to
+	// false when the entry activates so a later re-parking (were that ever
+	// possible) would record a fresh timestamp.
+	pendingTimestampSet bool
 }
 
 // Coordinator owns all registry state: per-entry active/pending status, per-optional-kind
@@ -153,6 +163,7 @@ func (c *Coordinator) OnGVKServable(bctx BuildCtx, gvk schema.GroupVersionKind) 
 				es.attachedOptional = make(map[schema.GroupVersionKind]bool)
 			}
 			es.attachedOptional[gvk] = true
+			metrics.OptionalKindsAttached(es.entry.Package, len(es.attachedOptional))
 			continue
 		}
 
@@ -190,11 +201,14 @@ func (c *Coordinator) OnGVKServable(bctx BuildCtx, gvk schema.GroupVersionKind) 
 			for _, opt := range servedOptional {
 				es.attachedOptional[opt] = true
 			}
+			metrics.OptionalKindsAttached(es.entry.Package, len(es.attachedOptional))
 		}
 
 		reconcilerActivationsTotal.WithLabelValues(es.entry.Package).Inc()
 		reconcilerActive.WithLabelValues(es.entry.Package).Set(1)
 		reconcilerMissingKinds.WithLabelValues(es.entry.Package).Set(0)
+		metrics.ReconcilerPendingClear(es.entry.Package) // M-17: runtime-activation path
+		es.pendingTimestampSet = false
 
 		bctx.Log.Info("reconciler activated by CRD watcher",
 			"package", es.entry.Package,

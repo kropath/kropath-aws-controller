@@ -5,9 +5,12 @@ package registry
 
 import (
 	"fmt"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/kropath/kropath-controller/internal/metrics"
 )
 
 // KropathConfigGVK is the GVK that must be served before any reconciler starts.
@@ -88,6 +91,10 @@ func (c *Coordinator) RunGate(bctx BuildCtx, servedGVKs map[schema.GroupVersionK
 
 		if len(missingKindNames) > 0 {
 			reconcilerActive.WithLabelValues(es.entry.Package).Set(0)
+			if !es.pendingTimestampSet {
+				metrics.ReconcilerPendingSince(es.entry.Package, time.Now()) // M-17: startup-gate path
+				es.pendingTimestampSet = true
+			}
 			bctx.Log.Info("reconciler pending: required CRDs not yet served",
 				"package", es.entry.Package,
 				"missingCount", len(missingKindNames),
@@ -115,6 +122,7 @@ func (c *Coordinator) RunGate(bctx BuildCtx, servedGVKs map[schema.GroupVersionK
 			for _, opt := range servedOptional {
 				es.attachedOptional[opt] = true
 			}
+			metrics.OptionalKindsAttached(es.entry.Package, len(es.attachedOptional))
 		}
 
 		// Pre-seed wildcard-Optional entries: discovery-lag can cause a GVK miss in
@@ -129,9 +137,12 @@ func (c *Coordinator) RunGate(bctx BuildCtx, servedGVKs map[schema.GroupVersionK
 				}
 				es.attachedOptional[gvk] = true
 			}
+			metrics.OptionalKindsAttached(es.entry.Package, len(es.attachedOptional))
 		}
 
 		reconcilerActive.WithLabelValues(es.entry.Package).Set(1)
+		metrics.ReconcilerPendingClear(es.entry.Package) // M-17: startup-gate path
+		es.pendingTimestampSet = false
 	}
 	return nil
 }

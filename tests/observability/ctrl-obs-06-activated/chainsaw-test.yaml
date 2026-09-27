@@ -1,0 +1,66 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-06-activated — AC-16 half of ctrl-obs-06 (M-17 delete-on-activation).
+#
+# Spec: kropath-core docs/specs/controller-observability-metrics.md §1.7, §8.7 (M-17).
+#
+# Requires ctrl-dyn-02 to have completed (it installs the ELBConfig CRD and
+# activates the elbconfig reconciler). See ctrl-obs-06-pending/ for why this AC
+# is split into its own suite rather than sharing a directory with AC-15, and
+# the Makefile for the FIFO ordering this depends on.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-06-activated
+spec:
+  description: "registry pending-series deletion and activation counters (ctrl-obs-06 AC-16)"
+  steps:
+    # AC-16: once elbconfig activates, its pending-since child is gone (not 0),
+    # the CRD-watch activated counter has fired, and the optional-kinds-attached
+    # gauge reports its (zero, for this Optional-less family) attached count.
+    - name: ac16-pending-series-deleted-on-activation
+      try:
+        - script:
+            timeout: 30s
+            content: |
+              set -e
+              metrics=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              if echo "$metrics" | grep -q 'kropath_registry_reconciler_pending_since_timestamp_seconds{package="elbconfig"}'; then
+                echo "FAIL: pending-since series for elbconfig is still present after activation"
+                echo "$metrics" | grep 'kropath_registry_reconciler_pending_since_timestamp_seconds' || true
+                exit 1
+              fi
+              echo "PASS: elbconfig pending-since series is absent (M-17), not merely zeroed"
+
+              activated=$(echo "$metrics" | grep 'kropath_registry_crd_watch_events_total{outcome="activated"}' | awk '{print $2}')
+              activated=${activated:-0}
+              if [ "${activated%.*}" -lt 1 ]; then
+                echo "FAIL: kropath_registry_crd_watch_events_total{outcome=\"activated\"} = $activated, want >= 1"
+                exit 1
+              fi
+              echo "PASS: kropath_registry_crd_watch_events_total{outcome=\"activated\"} = $activated"
+
+              # elbconfig declares no Optional GVKs, so its attached-kinds gauge is
+              # never Set() -- absent means the same thing a Set(0) would (see
+              # internal/registry/gate.go, internal/registry/registry.go): zero
+              # optional kinds attached. Either an absent series or an explicit 0
+              # satisfies "reports the attached count" for this family.
+              attached=$(echo "$metrics" | grep 'kropath_registry_optional_kinds_attached{package="elbconfig"}' | awk '{print $2}')
+              if [ -n "$attached" ] && [ "${attached%.*}" -ne 0 ]; then
+                echo "FAIL: kropath_registry_optional_kinds_attached{package=\"elbconfig\"} = $attached, want 0 or absent"
+                exit 1
+              fi
+              echo "PASS: kropath_registry_optional_kinds_attached{package=\"elbconfig\"} reports 0 attached kinds"

@@ -11,7 +11,7 @@ import (
 var (
 	reconcilerActive = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "kropath_reconciler_active",
-		Help: "1 if the reconciler is active (all required CRDs served), 0 if pending.",
+		Help: "1 if the reconciler is active (all required CRDs served), 0 if pending. For reconcilers with optional or wildcard kinds this does not imply any kind is being watched — see kropath_labeloperator_watched_kinds.",
 	}, []string{"package"})
 
 	reconcilerMissingKinds = prometheus.NewGaugeVec(prometheus.GaugeOpts{

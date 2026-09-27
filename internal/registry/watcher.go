@@ -14,6 +14,8 @@ import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+
+	"github.com/kropath/kropath-controller/internal/metrics"
 )
 
 // Error reason labels for crdWatchErrorsTotal.
@@ -94,6 +96,14 @@ func (w *Watcher) Start(ctx context.Context) error {
 
 	defer runtime.HandleCrash()
 
+	// activatedGVKs tracks which GVKs this process has already successfully
+	// handed to OnGVKServable, so a repeat watch event on the same GVK (e.g.
+	// an Update after the CRD is already Established) is distinguishable from
+	// the first time it became servable (design §2.5's activated vs
+	// already_active outcomes). Only ever touched from this single loop
+	// goroutine, so it needs no locking.
+	activatedGVKs := make(map[schema.GroupVersionKind]bool)
+
 	for {
 		item, shutdown := q.Get()
 		if shutdown {
@@ -104,20 +114,30 @@ func (w *Watcher) Start(ctx context.Context) error {
 			// Fetch from the informer's local store (no API round-trip).
 			rawObj, exists, err := informer.GetStore().GetByKey(item)
 			if err != nil || !exists {
+				metrics.CRDWatchEvent("store_miss")
 				return
 			}
 			u, ok := rawObj.(*unstructured.Unstructured)
 			if !ok {
+				metrics.CRDWatchEvent("cast_failed")
 				return
 			}
 			gvk, servable := crdServable(u)
 			if !servable {
+				metrics.CRDWatchEvent("not_servable")
 				return
 			}
 			if callErr := w.coord.OnGVKServable(w.bctx, gvk); callErr != nil {
 				w.bctx.Log.Error(callErr, "OnGVKServable failed", "gvk", gvk)
 				crdWatchErrorsTotal.WithLabelValues(errReasonBuildFailed).Inc()
+				return
 			}
+			if activatedGVKs[gvk] {
+				metrics.CRDWatchEvent("already_active")
+				return
+			}
+			activatedGVKs[gvk] = true
+			metrics.CRDWatchEvent("activated")
 		}()
 		select {
 		case <-ctx.Done():
