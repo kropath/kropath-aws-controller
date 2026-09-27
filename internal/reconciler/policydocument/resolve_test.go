@@ -95,7 +95,30 @@ func TestResolveRefOutcomes(t *testing.T) {
 	pendingFieldObj.SetNamespace("default")
 	pendingFieldObj.SetName("pending-role")
 
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(predictedArnObj, pendingFieldObj).Build()
+	resolvedArnObj := &unstructured.Unstructured{}
+	resolvedArnObj.SetGroupVersionKind(schema.GroupVersionKind{Group: "aws.kropath.run", Version: "v1alpha1", Kind: "AWSIAMRole"})
+	resolvedArnObj.SetNamespace("default")
+	resolvedArnObj.SetName("resolved-role-arn")
+	if err := unstructured.SetNestedField(resolvedArnObj.Object, "arn:aws:iam::123456789012:role/resolved-via-arn", "status", "arn"); err != nil {
+		t.Fatalf("seed arn: %v", err)
+	}
+
+	pendingArnObj := &unstructured.Unstructured{}
+	pendingArnObj.SetGroupVersionKind(schema.GroupVersionKind{Group: "aws.kropath.run", Version: "v1alpha1", Kind: "AWSIAMRole"})
+	pendingArnObj.SetNamespace("default")
+	pendingArnObj.SetName("pending-role-arn")
+
+	badArnTypeObj := &unstructured.Unstructured{}
+	badArnTypeObj.SetGroupVersionKind(schema.GroupVersionKind{Group: "aws.kropath.run", Version: "v1alpha1", Kind: "AWSIAMRole"})
+	badArnTypeObj.SetNamespace("default")
+	badArnTypeObj.SetName("bad-arn-type-role")
+	if err := unstructured.SetNestedStringMap(badArnTypeObj.Object, map[string]string{"nested": "not-a-string"}, "status", "arn"); err != nil {
+		t.Fatalf("seed bad arn type: %v", err)
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		predictedArnObj, pendingFieldObj, resolvedArnObj, pendingArnObj, badArnTypeObj,
+	).Build()
 
 	tests := []struct {
 		name        string
@@ -169,6 +192,32 @@ func TestResolveRefOutcomes(t *testing.T) {
 			outcome:     "pending",
 			kind:        "other",
 			field:       "predictedArn",
+		},
+		{
+			name:        "arn field absent -> pending",
+			client:      fakeClient,
+			ref:         &v1alpha1.PolicyRef{Kind: "AWSIAMRole", Name: "pending-role-arn", Field: "arn"},
+			wantPending: true,
+			outcome:     "pending",
+			kind:        "AWSIAMRole",
+			field:       "arn",
+		},
+		{
+			name:    "arn field populated -> resolved",
+			client:  fakeClient,
+			ref:     &v1alpha1.PolicyRef{Kind: "AWSIAMRole", Name: "resolved-role-arn", Field: "arn"},
+			outcome: "resolved",
+			kind:    "AWSIAMRole",
+			field:   "arn",
+		},
+		{
+			name:    "arn field wrong type -> error",
+			client:  fakeClient,
+			ref:     &v1alpha1.PolicyRef{Kind: "AWSIAMRole", Name: "bad-arn-type-role", Field: "arn"},
+			wantErr: true,
+			outcome: "error",
+			kind:    "AWSIAMRole",
+			field:   "arn",
 		},
 	}
 
