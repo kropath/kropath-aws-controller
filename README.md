@@ -199,15 +199,9 @@ drifts from the code (the **Feature registry drift gate** job).
 
 ### Known gaps
 
-- **`make test-chainsaw`'s "remaining suites" list is itself missing several existing suites**
-  (`cloudfront`, `cloudtrail`, `cognito`, `bedrock`, `sagemaker`, `opensearch`, `dsql`, `ssm`,
-  `keyspaces`, `quicksight`, `networkfirewall`, `backup`, `managedprometheus`, `recyclebin`,
-  `route53`, `lambda`, `ecrpublic`, `kinesis`, `mq`, `msk`, `glue`, `athena`, `emr`, `acm`,
-  `dynamodb`) — each has its own `test-<service>` target and passes standalone, but
-  `make test-chainsaw` (the CI gate) never runs them. Discovered while adding the eight cascade
-  Chainsaw suites in KRO-1259; out of scope for that fix since it is a pre-existing, unrelated
-  drift in the "run everything" target rather than a missing suite. Worth its own follow-up
-  ticket.
+None currently tracked. The last entry here (`make test-chainsaw`'s "remaining suites" list
+missing several existing suites) was fixed in KRO-1263 — every `tests/*/` suite directory is now
+referenced somewhere in `make test-chainsaw`.
 
 ### Label injection — deviations from spec
 
