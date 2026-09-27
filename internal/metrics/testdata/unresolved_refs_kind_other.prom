@@ -1,0 +1,3 @@
+# HELP kropath_policydocument_unresolved_refs Number of unresolved policy source references across all PolicyDocument objects, by referenced kind and status field, sampled at scrape time.
+# TYPE kropath_policydocument_unresolved_refs gauge
+kropath_policydocument_unresolved_refs{field="predictedArn",kind="other"} 1

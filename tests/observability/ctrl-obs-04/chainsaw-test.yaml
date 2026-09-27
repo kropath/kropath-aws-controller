@@ -1,0 +1,163 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-04 — PolicyDocument observability metrics, AC-9 through AC-12
+# (controller-observability-metrics.md spec §7, §10).
+#
+# Requires the controller running on :18080 (METRICS_PORT in Makefile), per
+# tests/version/ctrl-version-01's script: precedent for scraping /metrics.
+#
+# Test isolation — unique-name-per-AC, no inter-step deletes: each AC owns
+# distinct PolicyDocument names (ac09-doc, ac10-doc, ac11-doc + ac11-bogus-N,
+# ac12-doc), per docs/frequent-chainsaw-errors.md. AC-9's step runs first and
+# is the only one whose /metrics assertion needs an exact
+# kropath_policydocument_documents{reason="SourceNotReady"} value, since
+# later ACs in this suite also leave SourceNotReady documents behind;
+# checking it before those steps apply keeps the count exact.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-04
+spec:
+  description: "PolicyDocument observability metrics — M-10 collect-all and §2.4 ref bucketing (ctrl-obs-04)"
+  steps:
+    # AC-9: three refs to distinct absent objects of installed kinds. M-10's
+    # collect-all change means unresolved_refs sums to 3, not 1.
+    - name: ac9-three-unresolved-refs
+      try:
+        - apply:
+            file: ac09-setup.yaml
+        - assert:
+            file: ac09-assert.yaml
+            timeout: 30s
+        - script:
+            timeout: 30s
+            content: |
+              set -e
+              output=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              sum=$(echo "$output" | awk '/^kropath_policydocument_unresolved_refs\{/ {sum += $NF} END {print sum+0}')
+              echo "kropath_policydocument_unresolved_refs sum: $sum"
+              if [ "$sum" -ne 3 ]; then
+                echo "FAIL: expected unresolved_refs to sum to 3, got $sum"
+                echo "$output" | grep '^kropath_policydocument_unresolved_refs{' || true
+                exit 1
+              fi
+
+              docs_line=$(echo "$output" | grep '^kropath_policydocument_documents{reason="SourceNotReady"}' || true)
+              echo "documents{reason=SourceNotReady}: $docs_line"
+              value=$(echo "$docs_line" | awk '{print $NF}')
+              if [ "$value" != "1" ]; then
+                echo "FAIL: expected kropath_policydocument_documents{reason=\"SourceNotReady\"} 1, got '$docs_line'"
+                exit 1
+              fi
+              echo "PASS: AC-9 unresolved_refs sums to 3, documents{reason=SourceNotReady} is 1"
+
+    # AC-10: a ref naming a kind whose CRD is absent must record outcome="crd_absent",
+    # never "pending", and must not log a Reconciler error (the swallow at
+    # resolve.go:34 stays; the outcome label is the record instead).
+    - name: ac10-ref-crd-absent
+      try:
+        - apply:
+            file: ac10-setup.yaml
+        - assert:
+            file: ac10-assert.yaml
+            timeout: 30s
+        - script:
+            timeout: 30s
+            content: |
+              set -e
+              output=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              # Prometheus emits labels alphabetically (field, kind, outcome), so
+              # match each label independently rather than assuming an order.
+              crd_absent_line=$(echo "$output" | grep '^kropath_policydocument_ref_resolutions_total{' | grep 'kind="other"' | grep 'outcome="crd_absent"' || true)
+              echo "ref_resolutions_total (crd_absent, kind=other): $crd_absent_line"
+              if [ -z "$crd_absent_line" ]; then
+                echo "FAIL: expected a kropath_policydocument_ref_resolutions_total series with outcome=\"crd_absent\""
+                echo "$output" | grep '^kropath_policydocument_ref_resolutions_total{' || true
+                exit 1
+              fi
+
+              if grep -q "ac10-doc.*Reconciler error" /tmp/kropath-controller/controller.log 2>/dev/null; then
+                echo "FAIL: a Reconciler error was logged for ac10-doc"
+                grep "ac10-doc" /tmp/kropath-controller/controller.log
+                exit 1
+              fi
+              echo "PASS: AC-10 crd_absent recorded, no Reconciler error logged"
+
+    # AC-11: an unbounded ref.kind buckets to "other". Nine more documents
+    # with distinct bogus kinds add no further kind label values (spec §2.4
+    # bucketing bound).
+    - name: ac11-unbounded-kind-bucketed
+      try:
+        - apply:
+            file: ac11-setup.yaml
+        - assert:
+            file: ac11-assert.yaml
+            timeout: 30s
+        - script:
+            timeout: 60s
+            content: |
+              set -e
+              output=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              other_line=$(echo "$output" | grep '^kropath_policydocument_unresolved_refs{field="predictedArn",kind="other"}' || true)
+              echo "unresolved_refs{kind=other}: $other_line"
+              if [ -z "$other_line" ]; then
+                echo "FAIL: expected a kropath_policydocument_unresolved_refs series with kind=\"other\""
+                exit 1
+              fi
+
+              distinct_kinds=$(echo "$output" | grep '^kropath_policydocument_unresolved_refs{' | \
+                sed -E 's/.*kind="([^"]*)".*/\1/' | sort -u | wc -l | tr -d ' ')
+              echo "distinct kind label values on unresolved_refs: $distinct_kinds"
+              # Closed set is the six installed kinds plus "other" = 7 at most.
+              if [ "$distinct_kinds" -gt 7 ]; then
+                echo "FAIL: expected at most 7 distinct kind values, got $distinct_kinds"
+                echo "$output" | grep '^kropath_policydocument_unresolved_refs{' || true
+                exit 1
+              fi
+              echo "PASS: AC-11 ten bogus kinds bucket to kind=\"other\" with no cardinality blowup"
+
+    # AC-12: two merged statements sharing a Sid increment sid_conflicts_total
+    # and set documents{reason="SidConflict"}.
+    - name: ac12-sid-conflict
+      try:
+        - apply:
+            file: ac12-setup.yaml
+        - assert:
+            file: ac12-assert.yaml
+            timeout: 30s
+        - script:
+            timeout: 30s
+            content: |
+              set -e
+              output=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              sid_line=$(echo "$output" | grep '^kropath_policydocument_sid_conflicts_total ' || true)
+              echo "sid_conflicts_total: $sid_line"
+              value=$(echo "$sid_line" | awk '{print $NF}')
+              if [ -z "$value" ] || [ "$(echo "$value" | awk '{print ($1 >= 1)}')" != "1" ]; then
+                echo "FAIL: expected kropath_policydocument_sid_conflicts_total >= 1, got '$sid_line'"
+                exit 1
+              fi
+
+              docs_line=$(echo "$output" | grep '^kropath_policydocument_documents{reason="SidConflict"}' || true)
+              echo "documents{reason=SidConflict}: $docs_line"
+              if [ -z "$docs_line" ]; then
+                echo "FAIL: expected a kropath_policydocument_documents series with reason=\"SidConflict\""
+                exit 1
+              fi
+              echo "PASS: AC-12 sid_conflicts_total incremented, documents{reason=SidConflict} present"

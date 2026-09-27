@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/kropath/kropath-controller/api/v1alpha1"
+	"github.com/kropath/kropath-controller/internal/metrics"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -26,6 +27,36 @@ import (
 )
 
 const defaultRequeueAfter = 10 * time.Second
+
+// Reason codes for the Ready condition this reconciler publishes on
+// PolicyDocument (spec §2.1, §2.4.3). These are the exported form of the
+// literals previously inlined at each readyCondition/sourceIssue call site
+// and are the closed set ReadyReasons() returns.
+const (
+	ReasonDocumentResolved         = "DocumentResolved"
+	ReasonInvalidDocumentJSON      = "InvalidDocumentJSON"
+	ReasonSidConflict              = "SidConflict"
+	ReasonSourceNotReady           = "SourceNotReady"
+	ReasonSourceMissing            = "SourceMissing"
+	ReasonSourcePending            = "SourcePending"
+	ReasonMergeFromRawNotSupported = "MergeFromRawNotSupported"
+)
+
+// ReadyReasons returns the closed set of Reason values this reconciler sets
+// on the Ready condition (spec §2.4.3, §10.2.1). SourceNotReady is the
+// unresolved-ref reason; SourcePending is the distinct unresolved
+// source-document reason.
+func ReadyReasons() []string {
+	return []string{
+		ReasonDocumentResolved,
+		ReasonInvalidDocumentJSON,
+		ReasonSidConflict,
+		ReasonSourceNotReady,
+		ReasonSourceMissing,
+		ReasonSourcePending,
+		ReasonMergeFromRawNotSupported,
+	}
+}
 
 // countInt32 clamps a slice length to int32 range, guarding the status-field
 // conversion since a document could theoretically hold more entries than
@@ -84,19 +115,33 @@ func (r *Reconciler) AddKindWatch(c controller.Controller, gvk schema.GroupVersi
 	return c.Watch(src)
 }
 
+// policyDocumentRefKindNames are the six installable kinds a PolicyDocument
+// ref may name (mirrored by internal/registry/entries.go:85's
+// policyDocumentRefGVKs). policyDocumentRefKindSet is the same set as a
+// lookup map, used by bucketKind (resolve.go) to bound the
+// ref_resolutions_total and unresolved_refs metric labels (spec §2.4).
+var policyDocumentRefKindNames = []string{
+	"AWSIAMRole",
+	"AWSS3Bucket",
+	"AWSLambdaFunction",
+	"AWSSQSQueue",
+	"AWSKMSKey",
+	"AWSSecretsManagerSecret",
+}
+
+var policyDocumentRefKindSet = func() map[string]bool {
+	set := make(map[string]bool, len(policyDocumentRefKindNames))
+	for _, k := range policyDocumentRefKindNames {
+		set[k] = true
+	}
+	return set
+}()
+
 // defaultRefGVKs returns the six reference GVKs that policydocument watches.
 // This is the single source of truth; policyRefWatchKinds() is deleted.
 func defaultRefGVKs() []schema.GroupVersionKind {
-	kinds := []string{
-		"AWSIAMRole",
-		"AWSS3Bucket",
-		"AWSLambdaFunction",
-		"AWSSQSQueue",
-		"AWSKMSKey",
-		"AWSSecretsManagerSecret",
-	}
-	gvks := make([]schema.GroupVersionKind, len(kinds))
-	for i, k := range kinds {
+	gvks := make([]schema.GroupVersionKind, len(policyDocumentRefKindNames))
+	for i, k := range policyDocumentRefKindNames {
 		gvks[i] = schema.GroupVersionKind{Group: "aws.kropath.run", Version: "v1alpha1", Kind: k}
 	}
 	return gvks
@@ -146,18 +191,18 @@ func (r *Reconciler) reconcileDocument(ctx context.Context, doc *v1alpha1.Policy
 		if !json.Valid([]byte(doc.Spec.DocumentJSON)) {
 			doc.Status.ResolvedDocumentJSON = ""
 			doc.Status.StatementCount = 0
-			doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionFalse, "InvalidDocumentJSON", "spec.documentJSON is not valid JSON", doc.Generation))
-			doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionFalse, "InvalidDocumentJSON", "spec.documentJSON is not valid JSON", doc.Generation))
-			doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionFalse, "InvalidDocumentJSON", "spec.documentJSON is not valid JSON", doc.Generation))
+			doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionFalse, ReasonInvalidDocumentJSON, "spec.documentJSON is not valid JSON", doc.Generation))
+			doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionFalse, ReasonInvalidDocumentJSON, "spec.documentJSON is not valid JSON", doc.Generation))
+			doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionFalse, ReasonInvalidDocumentJSON, "spec.documentJSON is not valid JSON", doc.Generation))
 			return ctrl.Result{}, nil
 		}
 
 		doc.Status.ResolvedDocumentJSON = doc.Spec.DocumentJSON
 		doc.Status.StatementCount = 0
 		doc.Status.SourceCount = countInt32(len(doc.Spec.Sources))
-		doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionTrue, "DocumentResolved", "spec.documentJSON copied to status.resolvedDocumentJSON", doc.Generation))
-		doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionFalse, "DocumentResolved", "no referenced sources required", doc.Generation))
-		doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionFalse, "DocumentResolved", "no merged statements", doc.Generation))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionTrue, ReasonDocumentResolved, "spec.documentJSON copied to status.resolvedDocumentJSON", doc.Generation))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionFalse, ReasonDocumentResolved, "no referenced sources required", doc.Generation))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionFalse, ReasonDocumentResolved, "no merged statements", doc.Generation))
 		return ctrl.Result{}, nil
 	}
 
@@ -177,30 +222,45 @@ func (r *Reconciler) reconcileDocument(ctx context.Context, doc *v1alpha1.Policy
 		return ctrl.Result{RequeueAfter: sourceIssue.requeueAfter}, nil
 	}
 
+	// M-10 (spec §2.4.2): collect every statement's pending-ref count before
+	// deciding, rather than returning on the first pending statement. This
+	// loop previously returned as soon as one statement came back pending,
+	// which meant resolveStatement (and therefore resolveRef, and its
+	// ref_resolutions_total emission) was never even called for the
+	// remaining statements. The CR-visible outcome is unchanged: any pending
+	// statement still means SourceNotReady with the same RequeueAfter and an
+	// empty status.resolvedDocumentJSON.
 	statements := make([]policyStatementJSON, 0, len(doc.Spec.Statements))
+	totalPending := 0
 	for _, stmt := range doc.Spec.Statements {
 		resolved, pending, err := resolveStatement(ctx, r.Client, doc.Namespace, stmt, resolve)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if pending {
-			doc.Status.ResolvedDocumentJSON = ""
-			doc.Status.StatementCount = 0
-			doc.Status.SourceCount = countInt32(len(doc.Spec.Sources))
-			doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionFalse, "SourceNotReady", "one or more refs are not ready", doc.Generation))
-			doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionTrue, "SourceNotReady", "one or more refs are not ready", doc.Generation))
-			doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionFalse, "SourceNotReady", "ref resolution is still pending", doc.Generation))
-			return ctrl.Result{RequeueAfter: r.requeueAfter()}, nil
+		if pending > 0 {
+			totalPending += pending
+			continue
 		}
 		statements = append(statements, resolved)
 	}
 
+	if totalPending > 0 {
+		doc.Status.ResolvedDocumentJSON = ""
+		doc.Status.StatementCount = 0
+		doc.Status.SourceCount = countInt32(len(doc.Spec.Sources))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionFalse, ReasonSourceNotReady, "one or more refs are not ready", doc.Generation))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionTrue, ReasonSourceNotReady, "one or more refs are not ready", doc.Generation))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionFalse, ReasonSourceNotReady, "ref resolution is still pending", doc.Generation))
+		return ctrl.Result{RequeueAfter: r.requeueAfter()}, nil
+	}
+
 	statements = append(sourceStatements, statements...)
 	if sid, conflict := findSidConflict(statements); conflict {
+		metrics.PolicyDocumentSidConflict()
 		message := fmt.Sprintf("Sid %q appears more than once across merged statements", sid)
-		doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionFalse, "SidConflict", message, doc.Generation))
-		doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionFalse, "SidConflict", message, doc.Generation))
-		doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionTrue, "SidConflict", message, doc.Generation))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionFalse, ReasonSidConflict, message, doc.Generation))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionFalse, ReasonSidConflict, message, doc.Generation))
+		doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionTrue, ReasonSidConflict, message, doc.Generation))
 		return ctrl.Result{}, nil
 	}
 
@@ -216,9 +276,9 @@ func (r *Reconciler) reconcileDocument(ctx context.Context, doc *v1alpha1.Policy
 		return ctrl.Result{}, err
 	}
 	doc.Status.ResolvedDocumentJSON = string(raw)
-	doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionTrue, "DocumentResolved", "structured policy document serialized", doc.Generation))
-	doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionFalse, "DocumentResolved", "all refs resolved", doc.Generation))
-	doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionFalse, "DocumentResolved", "no sid conflicts detected", doc.Generation))
+	doc.Status.Conditions = setCondition(doc.Status.Conditions, readyCondition(metav1.ConditionTrue, ReasonDocumentResolved, "structured policy document serialized", doc.Generation))
+	doc.Status.Conditions = setCondition(doc.Status.Conditions, sourceNotReadyCondition(metav1.ConditionFalse, ReasonDocumentResolved, "all refs resolved", doc.Generation))
+	doc.Status.Conditions = setCondition(doc.Status.Conditions, sidConflictCondition(metav1.ConditionFalse, ReasonDocumentResolved, "no sid conflicts detected", doc.Generation))
 	return ctrl.Result{}, nil
 }
 
@@ -250,10 +310,10 @@ func (r *Reconciler) collectSourceStatements(ctx context.Context, doc *v1alpha1.
 			if apierrors.IsNotFound(err) {
 				return nil, &sourceDocumentIssue{
 					requeueAfter:              r.requeueAfter(),
-					readyReason:               "SourceMissing",
+					readyReason:               ReasonSourceMissing,
 					message:                   fmt.Sprintf("source document %q not found", source.Name),
 					sourceNotReadyStatus:      metav1.ConditionTrue,
-					sourceNotReadyReason:      "SourceMissing",
+					sourceNotReadyReason:      ReasonSourceMissing,
 					clearResolvedDocumentJSON: true,
 				}, nil
 			}
@@ -262,10 +322,10 @@ func (r *Reconciler) collectSourceStatements(ctx context.Context, doc *v1alpha1.
 
 		if strings.TrimSpace(sourceDoc.Spec.DocumentJSON) != "" {
 			return nil, &sourceDocumentIssue{
-				readyReason:               "MergeFromRawNotSupported",
+				readyReason:               ReasonMergeFromRawNotSupported,
 				message:                   fmt.Sprintf("source document %q uses spec.documentJSON and cannot be merged", source.Name),
 				sourceNotReadyStatus:      metav1.ConditionFalse,
-				sourceNotReadyReason:      "MergeFromRawNotSupported",
+				sourceNotReadyReason:      ReasonMergeFromRawNotSupported,
 				clearResolvedDocumentJSON: false,
 			}, nil
 		}
@@ -273,10 +333,10 @@ func (r *Reconciler) collectSourceStatements(ctx context.Context, doc *v1alpha1.
 		if strings.TrimSpace(sourceDoc.Status.ResolvedDocumentJSON) == "" {
 			return nil, &sourceDocumentIssue{
 				requeueAfter:              r.requeueAfter(),
-				readyReason:               "SourcePending",
+				readyReason:               ReasonSourcePending,
 				message:                   fmt.Sprintf("source document %q has not resolved yet", source.Name),
 				sourceNotReadyStatus:      metav1.ConditionTrue,
-				sourceNotReadyReason:      "SourcePending",
+				sourceNotReadyReason:      ReasonSourcePending,
 				clearResolvedDocumentJSON: true,
 			}, nil
 		}
@@ -431,84 +491,111 @@ type policyStatementJSON struct {
 	Condition map[string]any `json:"Condition,omitempty"`
 }
 
-func resolveStatement(ctx context.Context, c client.Client, namespace string, stmt v1alpha1.PolicyStatement, resolve func(context.Context, client.Client, string, *v1alpha1.PolicyRef) (string, bool, error)) (policyStatementJSON, bool, error) {
+// resolveStatement resolves stmt's principals and resources. M-10 (spec
+// §2.4.2): it reports the total count of pending refs across both groups
+// rather than returning as soon as the first one is found, so every ref in
+// the statement gets a resolve attempt (and therefore a
+// ref_resolutions_total emission) every reconcile, not just the first.
+func resolveStatement(ctx context.Context, c client.Client, namespace string, stmt v1alpha1.PolicyStatement, resolve func(context.Context, client.Client, string, *v1alpha1.PolicyRef) (string, bool, error)) (policyStatementJSON, int, error) {
 	resolved := policyStatementJSON{
 		Sid:    stmt.Sid,
 		Effect: stmt.Effect,
 		Action: normalizeStringList(stmt.Actions),
 	}
 
+	pendingCount := 0
+
 	if len(stmt.Principals) > 0 {
 		principal, pending, err := resolvePrincipals(ctx, c, namespace, stmt.Principals, resolve)
 		if err != nil {
-			return policyStatementJSON{}, false, err
+			return policyStatementJSON{}, 0, err
 		}
-		if pending {
-			return policyStatementJSON{}, true, nil
+		pendingCount += pending
+		if pending == 0 {
+			resolved.Principal = principal
 		}
-		resolved.Principal = principal
 	}
 
 	if len(stmt.Resources) > 0 {
 		resource, pending, err := resolveResources(ctx, c, namespace, stmt.Resources, resolve)
 		if err != nil {
-			return policyStatementJSON{}, false, err
+			return policyStatementJSON{}, 0, err
 		}
-		if pending {
-			return policyStatementJSON{}, true, nil
+		pendingCount += pending
+		if pending == 0 {
+			resolved.Resource = resource
 		}
-		resolved.Resource = resource
+	}
+
+	if pendingCount > 0 {
+		return policyStatementJSON{}, pendingCount, nil
 	}
 
 	if len(stmt.Conditions) > 0 {
 		resolved.Condition = buildConditions(stmt.Conditions)
 	}
 
-	return resolved, false, nil
+	return resolved, 0, nil
 }
 
-func resolvePrincipals(ctx context.Context, c client.Client, namespace string, principals []v1alpha1.PolicyPrincipal, resolve func(context.Context, client.Client, string, *v1alpha1.PolicyRef) (string, bool, error)) (any, bool, error) {
+// resolvePrincipals resolves every principal ref, collecting the pending
+// count across all of them (M-10, spec §2.4.2) instead of stopping at the
+// first pending one.
+func resolvePrincipals(ctx context.Context, c client.Client, namespace string, principals []v1alpha1.PolicyPrincipal, resolve func(context.Context, client.Client, string, *v1alpha1.PolicyRef) (string, bool, error)) (any, int, error) {
 	grouped := map[string][]string{}
+	pendingCount := 0
 	for _, principal := range principals {
 		if strings.TrimSpace(principal.ARN) != "" {
 			grouped[principal.Type] = append(grouped[principal.Type], principal.ARN)
 			continue
 		}
 		if principal.Ref == nil {
-			return nil, false, fmt.Errorf("principal requires either arn or ref")
+			return nil, 0, fmt.Errorf("principal requires either arn or ref")
 		}
 		arn, pending, err := resolve(ctx, c, namespace, principal.Ref)
 		if err != nil {
-			return nil, false, err
+			return nil, 0, err
 		}
 		if pending {
-			return nil, true, nil
+			pendingCount++
+			continue
 		}
 		grouped[principal.Type] = append(grouped[principal.Type], arn)
 	}
-	return normalizePrincipalGroup(grouped), false, nil
+	if pendingCount > 0 {
+		return nil, pendingCount, nil
+	}
+	return normalizePrincipalGroup(grouped), 0, nil
 }
 
-func resolveResources(ctx context.Context, c client.Client, namespace string, resources []v1alpha1.PolicyResource, resolve func(context.Context, client.Client, string, *v1alpha1.PolicyRef) (string, bool, error)) (any, bool, error) {
+// resolveResources resolves every resource ref, collecting the pending count
+// across all of them (M-10, spec §2.4.2) instead of stopping at the first
+// pending one.
+func resolveResources(ctx context.Context, c client.Client, namespace string, resources []v1alpha1.PolicyResource, resolve func(context.Context, client.Client, string, *v1alpha1.PolicyRef) (string, bool, error)) (any, int, error) {
 	values := make([]string, 0, len(resources))
+	pendingCount := 0
 	for _, resource := range resources {
 		if strings.TrimSpace(resource.ARN) != "" {
 			values = append(values, resource.ARN)
 			continue
 		}
 		if resource.Ref == nil {
-			return nil, false, fmt.Errorf("resource requires either arn or ref")
+			return nil, 0, fmt.Errorf("resource requires either arn or ref")
 		}
 		arn, pending, err := resolve(ctx, c, namespace, resource.Ref)
 		if err != nil {
-			return nil, false, err
+			return nil, 0, err
 		}
 		if pending {
-			return nil, true, nil
+			pendingCount++
+			continue
 		}
 		values = append(values, arn)
 	}
-	return normalizeStringList(values), false, nil
+	if pendingCount > 0 {
+		return nil, pendingCount, nil
+	}
+	return normalizeStringList(values), 0, nil
 }
 
 func normalizePrincipalGroup(grouped map[string][]string) any {
