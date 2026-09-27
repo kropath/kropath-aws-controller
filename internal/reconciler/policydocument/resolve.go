@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/kropath/kropath-controller/api/v1alpha1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,7 +32,11 @@ func resolveRef(ctx context.Context, c client.Client, namespace string, ref *v1a
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "aws.kropath.run", Version: "v1alpha1", Kind: ref.Kind})
 	if err := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: ref.Name}, obj); err != nil {
-		if client.IgnoreNotFound(err) == nil {
+		// The ref's CRD may not be registered yet (an optional kind not yet
+		// installed, e.g. AWSLambdaFunction before AC-9 installs its CRD).
+		// Treat that the same as "object not found" — pending, not an error —
+		// so a dynamic-detection suite doesn't surface as a Reconciler error.
+		if apimeta.IsNoMatchError(err) || client.IgnoreNotFound(err) == nil {
 			return "", true, nil
 		}
 		return "", false, err
