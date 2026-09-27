@@ -199,33 +199,15 @@ drifts from the code (the **Feature registry drift gate** job).
 
 ### Known gaps
 
-- ~~**Eight reconcilers have no Chainsaw suite.**~~ Fixed (KRO-1259). `ELBConfig`,
-  `AppScalingConfig`, `CodeArtifactConfig`, `DocumentDBConfig`, `MWAAConfig`, `PipesConfig`,
-  `RAMConfig`, and `SESConfig` each now have a `tests/<service>/` suite and a `test-<service>`
-  root Make target (see the Feature 1 table above), wired into `make test-chainsaw`. Coverage is
-  the effectiveConfig cascade merge only — the CRD-level `x-kubernetes-validations` acceptance
-  criteria in each resource's spec are covered in `kropath-aws`, not here. `ELBConfig`'s suite
-  installs its own CRD from `tests/fixtures/crds-optional/` as an idempotent first step (see
-  `docs/troubleshooting-logs/2026-08-13-elbconfig-missing-crd-manager-crash.md` for why that CRD
-  is optional in the first place), so `make test-elb` is self-sufficient and does not depend on
-  `ctrl-dyn-01/02/03` having run first.
-
-  Three of the eight resources' specs (`aws-elb-01-elbconfig.md`, `aws-mwaa-01-mwaaconfig.md`,
-  `aws-pipes-01-pipesconfig.md`) document the effectiveConfig cascade merge in their Schema
-  Surface / Context sections but — unlike every sibling `*Config` spec — never enumerate it as a
-  numbered Acceptance Criterion. The new suites for those three test the documented behavior
-  directly under descriptive step names rather than invented AC numbers; flagged to Spec Analyst
-  as a spec gap worth a follow-up amendment.
-- ~~**`make test-apigateway` is missing from the root `Makefile`.**~~ Fixed (KRO-1259). Added,
-  matching the existing `test-apigatewayv2` pattern.
 - **`make test-chainsaw`'s "remaining suites" list is itself missing several existing suites**
   (`cloudfront`, `cloudtrail`, `cognito`, `bedrock`, `sagemaker`, `opensearch`, `dsql`, `ssm`,
   `keyspaces`, `quicksight`, `networkfirewall`, `backup`, `managedprometheus`, `recyclebin`,
   `route53`, `lambda`, `ecrpublic`, `kinesis`, `mq`, `msk`, `glue`, `athena`, `emr`, `acm`,
   `dynamodb`) — each has its own `test-<service>` target and passes standalone, but
-  `make test-chainsaw` (the CI gate) never runs them. Discovered while adding the eight suites
-  above; out of scope for this fix since it is a pre-existing, unrelated drift in the "run
-  everything" target rather than a missing suite. Worth its own follow-up ticket.
+  `make test-chainsaw` (the CI gate) never runs them. Discovered while adding the eight cascade
+  Chainsaw suites in KRO-1259; out of scope for that fix since it is a pre-existing, unrelated
+  drift in the "run everything" target rather than a missing suite. Worth its own follow-up
+  ticket.
 
 ### Label injection — deviations from spec
 
