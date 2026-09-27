@@ -27,6 +27,13 @@ kind: Test
 metadata:
   name: ctrl-rb-01-cascade
 spec:
+  namespace: recyclebin-prod
+  namespaceTemplate:
+    metadata:
+      annotations:
+        aws.kropath.run/global-config-namespace: kro-system
+        services.k8s.aws/owner-account-id: "123456789012"
+        services.k8s.aws/default-region: "us-east-1"
   steps:
     # -----------------------------------------------------------------------
     # ac11: RecycleBinConfig.spec.mandatory.retentionPeriodValue and

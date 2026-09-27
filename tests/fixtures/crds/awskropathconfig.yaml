@@ -3393,6 +3393,39 @@ spec:
                           description: >-
                             IAM role ARN enforced org-wide for malware scanning. Empty string
                             (zero value) = not enforced.
+                    ebsrecyclebin:
+                      type: object
+                      default: {}
+                      description: >-
+                        EBS Recycle Bin governance fields applied across all RecycleBinConfig
+                        resources. Cascade levels 1-2 in the ten-level priority chain
+                        (ADR-015 §5.3). Only retentionPeriodValue and lockRule are governed at
+                        the KropathConfig level; retentionPeriodUnit, unlockDelayValue,
+                        unlockDelayUnit, syncedLabels, and syncedAnnotations are
+                        RecycleBinConfig-only.
+                      properties:
+                        retentionPeriodValue:
+                          type: integer
+                          format: int64
+                          default: 0
+                          minimum: 0
+                          description: >-
+                            Org-wide mandatory retention period value enforced for all Recycle
+                            Bin rules. 0 (zero value) = not enforced.
+                        lockRule:
+                          type: boolean
+                          default: false
+                          description: >-
+                            Org-wide enforcement that the Recycle Bin rule is locked. false
+                            (zero value) = not enforced; firstTrue wins in cascade.
+                        tags:
+                          type: object
+                          default: {}
+                          description: >-
+                            Org-wide EBS Recycle Bin resource tags. Merged additively with
+                            RecycleBinConfig tags; this (stronger) level wins on key conflict.
+                          additionalProperties:
+                            type: string
                     kinesis:
                       type: object
                       default: {}
@@ -4916,6 +4949,30 @@ spec:
                         scannerRoleARN:
                           type: string
                           description: Default IAM role ARN for malware scanning.
+                    ebsrecyclebin:
+                      type: object
+                      default: {}
+                      description: >-
+                        Default EBS Recycle Bin governance fields. Cascade levels 8-9 in the
+                        ten-level priority chain (ADR-015 §5.3). Applied only when no
+                        higher-priority source sets the field.
+                      properties:
+                        retentionPeriodValue:
+                          type: integer
+                          format: int64
+                          default: 0
+                          minimum: 0
+                          description: Default retention period value for Recycle Bin rules.
+                        lockRule:
+                          type: boolean
+                          default: false
+                          description: Default Recycle Bin rule lock toggle.
+                        tags:
+                          type: object
+                          default: {}
+                          description: Default EBS Recycle Bin resource tags.
+                          additionalProperties:
+                            type: string
                     kinesis:
                       type: object
                       default: {}
