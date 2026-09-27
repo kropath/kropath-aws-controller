@@ -201,7 +201,7 @@ drifts from the code (the **Feature registry drift gate** job).
 
 #### Label injection — deviations from spec
 
-The feature is implemented and AC-1 … AC-8 all have passing steps. Two details differ from
+The feature is implemented and AC-1 … AC-8 all have passing steps. One detail differs from
 [`controller-label-operator.md`](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md),
 and one acceptance criterion has no step yet:
 
@@ -210,8 +210,6 @@ and one acceptance criterion has no step yet:
   enumerates GVKs once via a discovery call at startup and registers one controller per kind, so
   a CRD created later (notably a kro-generated resource CRD) is not watched until the pod
   restarts. RBAC already uses `resources: ["*"]`, so only the discovery is startup-bound.
-- **Only `v1alpha1` is watched.** `setupGroup` requests `<group>/v1alpha1` explicitly; a future
-  `v1beta1`/`v1` under the same group would be ignored.
 - **AC-9 has no Chainsaw step.** Scope is decided by API group alone, so the **provider-scoped**
   `KropathConfig` that `api/v1alpha1/register.go` registers under `aws.kropath.run` is
   deliberately in scope and does get labelled — the spec was amended to state this explicitly and
