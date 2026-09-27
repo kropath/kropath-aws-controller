@@ -377,6 +377,78 @@ test-bedrock: ## Run Bedrock cascade Chainsaw suite (ctrl-bedrock-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/bedrock/ctrl-bedrock-01/ $(CHAINSAW_FLAGS)
 
+test-backup: ## Run Backup cascade Chainsaw suite (ctrl-backup-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/backup/ctrl-backup-01/ $(CHAINSAW_FLAGS)
+
+test-cloudfront: ## Run CloudFront cascade Chainsaw suite (ctrl-cloudfront-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/cloudfront/ctrl-cloudfront-01/ $(CHAINSAW_FLAGS)
+
+test-cloudtrail: ## Run CloudTrail cascade Chainsaw suite (ctrl-ct-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/cloudtrail/ctrl-ct-01/ $(CHAINSAW_FLAGS)
+
+test-cognito: ## Run Cognito cascade Chainsaw suite (ctrl-cognito).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/cognito/ctrl-cognito/ $(CHAINSAW_FLAGS)
+
+test-dsql: ## Run Aurora DSQL cascade Chainsaw suite (ctrl-dsql-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/dsql/ctrl-dsql-01/ $(CHAINSAW_FLAGS)
+
+test-ecrpublic: ## Run ECR Public cascade Chainsaw suite (ctrl-ecrpub-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/ecrpublic/controller/ctrl-ecrpub-01/ $(CHAINSAW_FLAGS)
+
+test-keyspaces: ## Run Keyspaces cascade Chainsaw suite (ctrl-keyspaces-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/keyspaces/ctrl-keyspaces-01/ $(CHAINSAW_FLAGS)
+
+test-kinesis: ## Run Kinesis cascade Chainsaw suite (ctrl-kinesis-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/kinesis/controller/ctrl-kinesis-01/ $(CHAINSAW_FLAGS)
+
+test-lambda: ## Run Lambda cascade Chainsaw suite (ctrl-lambda-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/lambda/ctrl-lambda-01/ $(CHAINSAW_FLAGS)
+
+test-managedprometheus: ## Run Managed Prometheus cascade Chainsaw suite.
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/managedprometheus/controller/ $(CHAINSAW_FLAGS)
+
+test-mq: ## Run MQ cascade Chainsaw suite (ctrl-mq-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/mq/ctrl-mq-01/ $(CHAINSAW_FLAGS)
+
+test-networkfirewall: ## Run Network Firewall cascade Chainsaw suite (ctrl-nfw-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/networkfirewall/ctrl-nfw-01/ $(CHAINSAW_FLAGS)
+
+test-opensearch: ## Run OpenSearch cascade Chainsaw suite (ctrl-opensearch-cascade).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/opensearch/ctrl-opensearch-cascade/ $(CHAINSAW_FLAGS)
+
+test-quicksight: ## Run QuickSight cascade Chainsaw suite (ctrl-qs-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/quicksight/ctrl-qs-01/ $(CHAINSAW_FLAGS)
+
+test-recyclebin: ## Run Recycle Bin cascade Chainsaw suite (ctrl-rb-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/recyclebin/controller/ctrl-rb-01/ $(CHAINSAW_FLAGS)
+
+test-route53: ## Run Route 53 cascade Chainsaw suite (ctrl-r53-00).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/route53/ctrl-r53-00/ $(CHAINSAW_FLAGS)
+
+test-sagemaker: ## Run SageMaker cascade Chainsaw suite (ctrl-sm-01).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/sagemaker/cascade/ctrl-sm-01/ $(CHAINSAW_FLAGS)
+
+test-ssm: ## Run SSM cascade Chainsaw suite (ctrl-ssm-cascade).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/ssm/ctrl-ssm-cascade/ $(CHAINSAW_FLAGS)
+
 test-eks: ## Run EKS cascade Chainsaw suite (ctrl-eks-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/eks/ctrl-eks-01/ $(CHAINSAW_FLAGS)
@@ -469,6 +541,14 @@ test-dyn-03: ## Run dynamic CRD detection suite 03 — delete and reinstall ELBC
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ctrl-dyn-03/ $(CHAINSAW_FLAGS)
 
+test-dyn-04: ## Run PolicyDocument optional-kinds Chainsaw suite (ctrl-dyn-04).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/ctrl-dyn-04/ $(CHAINSAW_FLAGS)
+
+test-dyn-05: ## Run label-operator late-kind Chainsaw suite (ctrl-dyn-05).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/ctrl-dyn-05/ $(CHAINSAW_FLAGS)
+
 test-dyn: ## Run dynamic CRD detection suites 01 → 02 → 03 in the required order.
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ctrl-dyn-01/ $(CHAINSAW_FLAGS)
@@ -484,14 +564,23 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 	$(CHAINSAW) test tests/ctrl-dyn-01/ $(CHAINSAW_FLAGS)
 	$(CHAINSAW) test tests/ctrl-dyn-02/ $(CHAINSAW_FLAGS)
 	$(CHAINSAW) test tests/ctrl-dyn-03/ $(CHAINSAW_FLAGS)
+	# ctrl-dyn-04/05 need their own optional CRD (awslambdafunction /
+	# gcpcloudspannerinstanceconfig) absent at suite start, same as 01-03, but
+	# no other suite below references either CRD, so — unlike 01-03 — they do
+	# not need FIFO ordering against each other or against the parallel batch.
+	$(CHAINSAW) test tests/ctrl-dyn-04/ $(CHAINSAW_FLAGS)
+	$(CHAINSAW) test tests/ctrl-dyn-05/ $(CHAINSAW_FLAGS)
 	# All remaining suites are order-independent.
 	$(CHAINSAW) test \
 		tests/acm/ tests/apigateway/ tests/apigatewayv2/ tests/appscaling/ tests/athena/ tests/autoscaling/ \
-		tests/cloudwatch/ tests/cloudwatchlogs/ tests/codeartifact/ tests/documentdb/ tests/dynamodb/ tests/ec2/ \
-		tests/ecr/ tests/ecs/ tests/efs/ tests/eks/ tests/elasticache/ tests/elb/ \
-		tests/emr/ tests/eventbridge/ tests/features/ tests/glue/ tests/iam/ tests/kms/ \
-		tests/kropathconfig/ tests/label-operator/ tests/memorydb/ tests/msk/ tests/mwaa/ tests/pipes/ tests/policy/ \
-		tests/ram/ tests/rds/ tests/s3/ tests/s3advanced/ tests/secretsmanager/ tests/ses/ tests/sns/ tests/sqs/ \
+		tests/backup/ tests/bedrock/ tests/cloudfront/ tests/cloudtrail/ tests/cloudwatch/ tests/cloudwatchlogs/ \
+		tests/codeartifact/ tests/cognito/ tests/documentdb/ tests/dsql/ tests/dynamodb/ tests/ec2/ \
+		tests/ecr/ tests/ecrpublic/ tests/ecs/ tests/efs/ tests/eks/ tests/elasticache/ tests/elb/ \
+		tests/emr/ tests/eventbridge/ tests/features/ tests/glue/ tests/iam/ tests/keyspaces/ tests/kinesis/ \
+		tests/kms/ tests/kropathconfig/ tests/label-operator/ tests/lambda/ tests/managedprometheus/ \
+		tests/memorydb/ tests/mq/ tests/msk/ tests/mwaa/ tests/networkfirewall/ tests/opensearch/ tests/pipes/ \
+		tests/policy/ tests/quicksight/ tests/ram/ tests/rds/ tests/recyclebin/ tests/route53/ tests/s3/ \
+		tests/s3advanced/ tests/sagemaker/ tests/secretsmanager/ tests/ses/ tests/sns/ tests/sqs/ tests/ssm/ \
 		tests/stepfunctions/ tests/version/ tests/waf/ \
 		tests/organizations/ \
 		$(CHAINSAW_FLAGS)

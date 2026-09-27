@@ -5,5 +5,9 @@ metadata:
   namespace: default
 status:
   conditions:
+    - type: Ready
+      status: "False"
     - type: SourceNotReady
       status: "True"
+    - type: SidConflict
+      status: "False"

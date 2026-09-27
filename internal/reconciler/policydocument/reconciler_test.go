@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kropath/kropath-controller/api/v1alpha1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -381,6 +382,33 @@ func TestResolveRefUsesStatusArn(t *testing.T) {
 	}
 	if arn != "arn:aws:iam::123456789012:policy/example" {
 		t.Fatalf("unexpected arn %q", arn)
+	}
+}
+
+// noMatchKindClient simulates a ref kind whose CRD is not yet registered on
+// the API server, which client-go reports as a *meta.NoKindMatchError rather
+// than a NotFound error.
+type noMatchKindClient struct {
+	client.Client
+}
+
+func (noMatchKindClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
+	return &apimeta.NoKindMatchError{
+		GroupKind:        schema.GroupKind{Group: "aws.kropath.run", Kind: "AWSLambdaFunction"},
+		SearchedVersions: []string{"v1alpha1"},
+	}
+}
+
+func TestResolveRefTreatsMissingCRDAsPending(t *testing.T) {
+	arn, pending, err := resolveRef(context.Background(), noMatchKindClient{}, "default", &v1alpha1.PolicyRef{Kind: "AWSLambdaFunction", Name: "fn"})
+	if err != nil {
+		t.Fatalf("expected no error when the ref's CRD is not yet registered, got: %v", err)
+	}
+	if !pending {
+		t.Fatalf("expected pending=true when the ref's CRD is not yet registered")
+	}
+	if arn != "" {
+		t.Fatalf("expected empty arn, got %q", arn)
 	}
 }
 

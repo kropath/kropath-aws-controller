@@ -20,8 +20,17 @@ metadata:
   namespace: ssm-prod
 status:
   conditions:
+    - type: Reconciled
+      status: "True"
+      reason: CascadeMerged
+    - type: PlacementResolved
+      status: "True"
+      reason: ResolvedFromNamespace
     - type: Valid
       status: "False"
       reason: InvalidDocumentTypeNotInAllowedList
+    - type: GlobalProfileResolved
+      status: "False"
+      reason: ProfileUnresolved
   effectiveConfig:
     mandatory: {}

@@ -9,8 +9,7 @@ spec:
       effect: Allow
       principals:
         - type: Service
-          identifiers:
-            - apigateway.amazonaws.com
+          arn: apigateway.amazonaws.com
       actions:
         - lambda:InvokeFunction
       resources:

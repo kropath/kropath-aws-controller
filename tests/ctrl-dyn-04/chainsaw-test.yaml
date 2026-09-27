@@ -24,8 +24,10 @@
 # AC-9: When AWSLambdaFunction CRD becomes available at runtime, policydocument
 #   calls AddKindWatch and can subsequently resolve AWSLambdaFunction refs.
 #   Verified by: a PolicyDocument with a lambda resource ref transitions from
-#   SourceNotReady=True to Ready=True when the lambda CR's status.arn is set
-#   (proving the watch is live and triggers reconciliation).
+#   SourceNotReady=True to Ready=True when the lambda CR's status.predictedArn
+#   is set (proving the watch is live and triggers reconciliation). The ref
+#   uses the default "predictedArn" field (see resolve.go) — no field: arn
+#   override — so the lambda fixture's status must be patched to match.
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -103,9 +105,9 @@ spec:
               kubectl patch awslambdafunction/ac09-lambda-fn \
                 --subresource=status \
                 --type=merge \
-                --patch='{"status":{"arn":"arn:aws:lambda:us-east-1:123456789012:function:ac09-lambda-fn"}}' \
+                --patch='{"status":{"predictedArn":"arn:aws:lambda:us-east-1:123456789012:function:ac09-lambda-fn"}}' \
                 -n default
-              echo "Patched lambda CR status.arn"
+              echo "Patched lambda CR status.predictedArn"
         - assert:
             file: ac09-assert-resolved.yaml
             timeout: 90s
