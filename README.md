@@ -185,7 +185,12 @@ Both are implemented and covered. The label-operator suite has a step for AC-1 �
 [spec](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md)
 (label added for AWS config, GCP config and non-config kinds; wrong value corrected; correct
 value is a no-op; resource still admitted while the operator is down; retroactive labelling on
-recovery; core `kropath.run` group excluded); AC-9 is not yet covered — see
+recovery; core `kropath.run` group excluded). AC-10 — a CRD registered under these API groups
+*after* the operator starts still gets labelled without a restart — is covered by
+`tests/ctrl-dyn-05`: the CRD watcher (`internal/registry/watcher.go`) detects a new
+provider-group CRD becoming served and calls `labeloperator`'s wildcard `AddKindWatch`
+(`internal/registry/entries.go`), which registers a fresh runtime controller for that kind.
+AC-9 is not yet covered — see
 [Known gaps](#known-gaps). The PolicyDocument suites
 cover ref resolution (`phase2-refs`) and source merging with `Sid` conflict detection
 (`phase3-merge`). See [Known gaps](#known-gaps) for the deviations from spec that remain.
@@ -201,15 +206,9 @@ drifts from the code (the **Feature registry drift gate** job).
 
 #### Label injection — deviations from spec
 
-The feature is implemented and AC-1 … AC-8 all have passing steps. One detail differs from
-[`controller-label-operator.md`](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md),
-and one acceptance criterion has no step yet:
+The feature is implemented and AC-1 … AC-8 and AC-10 all have passing steps. One acceptance
+criterion has no step yet:
 
-- **New CRDs are not picked up until restart.** The spec says "any new CRD registered under
-  these API groups — the operator automatically covers it without code changes". `Setup()`
-  enumerates GVKs once via a discovery call at startup and registers one controller per kind, so
-  a CRD created later (notably a kro-generated resource CRD) is not watched until the pod
-  restarts. RBAC already uses `resources: ["*"]`, so only the discovery is startup-bound.
 - **AC-9 has no Chainsaw step.** Scope is decided by API group alone, so the **provider-scoped**
   `KropathConfig` that `api/v1alpha1/register.go` registers under `aws.kropath.run` is
   deliberately in scope and does get labelled — the spec was amended to state this explicitly and
