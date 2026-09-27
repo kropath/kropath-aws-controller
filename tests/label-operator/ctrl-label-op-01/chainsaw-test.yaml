@@ -14,7 +14,7 @@
 #
 # Chainsaw test suite: ctrl-label-op-01
 # Spec: controller-label-operator (maintained outside this repo).
-# Covers all 8 acceptance criteria.
+# Covers all 9 acceptance criteria.
 ---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
@@ -138,3 +138,18 @@ spec:
       cleanup:
         - delete:
             file: 15-kropathconfig-core.yaml
+
+    # AC-9: provider-scoped KropathConfig (registered under aws.kropath.run by
+    # api/v1alpha1/register.go) IS labeled by the operator. Scope is decided by
+    # API group alone, so this pairs with AC-8: the core kropath.run KropathConfig
+    # is excluded, but this aws.kropath.run one is deliberately in scope.
+    - name: ac9-provider-scoped-kropathconfig-labeled
+      try:
+        - apply:
+            file: 17-aws-kropathconfig-no-label.yaml
+        - assert:
+            file: 18-assert-ac9-provider-scoped-label.yaml
+            timeout: 30s
+      cleanup:
+        - delete:
+            file: 17-aws-kropathconfig-no-label.yaml

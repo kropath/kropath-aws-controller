@@ -97,7 +97,7 @@ deployed, not by runtime flags — query `/features` or the generated
 ## Implementation status
 
 **61 reconcilers**, **58 CRD types** registered in `api/v1alpha1`, **61 Chainsaw suites**
-covering **493 steps**, and **91 Go test files**.
+covering **494 steps**, and **91 Go test files**.
 
 **Suite** is the Chainsaw suite under `tests/`; **Steps** counts its named steps.
 **AWS integration** tracks end-to-end validation against a live AWS account with real ACK
@@ -179,19 +179,18 @@ Neither reads or writes `effectiveConfig`; both are separate features with their
 | Feature | Reconciler | CR(s) watched | Output | Suite | Steps | AWS integration |
 |---|---|---|---|---|---|---|
 | PolicyDocument | `PolicyDocument` | `PolicyDocument`, `KropathConfig` | `status.resolvedDocumentJSON` | `policy/phase2-refs`, `policy/phase3-merge` | 11 | ⏳ Pending |
-| Label injection | `LabelOperator` | every kind under `aws.`/`gcp.`/`azure.kropath.run` | `metadata.labels[<provider>.kropath.run/resource-name]` | `label-operator/ctrl-label-op-01` | 8 | ⏳ Pending |
+| Label injection | `LabelOperator` | every kind under `aws.`/`gcp.`/`azure.kropath.run` | `metadata.labels[<provider>.kropath.run/resource-name]` | `label-operator/ctrl-label-op-01` | 9 | ⏳ Pending |
 
-Both are implemented and covered. The label-operator suite has a step for AC-1 … AC-8 of the
+Both are implemented and covered. The label-operator suite has a step for AC-1 … AC-10 of the
 [spec](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md)
 (label added for AWS config, GCP config and non-config kinds; wrong value corrected; correct
 value is a no-op; resource still admitted while the operator is down; retroactive labelling on
-recovery; core `kropath.run` group excluded). AC-10 — a CRD registered under these API groups
-*after* the operator starts still gets labelled without a restart — is covered by
-`tests/ctrl-dyn-05`: the CRD watcher (`internal/registry/watcher.go`) detects a new
-provider-group CRD becoming served and calls `labeloperator`'s wildcard `AddKindWatch`
-(`internal/registry/entries.go`), which registers a fresh runtime controller for that kind.
-AC-9 is not yet covered — see
-[Known gaps](#known-gaps). The PolicyDocument suites
+recovery; core `kropath.run` group excluded; provider-scoped `KropathConfig` under
+`aws.kropath.run` included). AC-10 — a CRD registered under these API groups *after* the operator
+starts still gets labelled without a restart — is covered by `tests/ctrl-dyn-05`: the CRD watcher
+(`internal/registry/watcher.go`) detects a new provider-group CRD becoming served and calls
+`labeloperator`'s wildcard `AddKindWatch` (`internal/registry/entries.go`), which registers a
+fresh runtime controller for that kind. The PolicyDocument suites
 cover ref resolution (`phase2-refs`) and source merging with `Sid` conflict detection
 (`phase3-merge`). See [Known gaps](#known-gaps) for the deviations from spec that remain.
 
@@ -206,16 +205,14 @@ drifts from the code (the **Feature registry drift gate** job).
 
 #### Label injection — deviations from spec
 
-The feature is implemented and AC-1 … AC-8 and AC-10 all have passing steps. One acceptance
-criterion has no step yet:
-
-- **AC-9 has no Chainsaw step.** Scope is decided by API group alone, so the **provider-scoped**
-  `KropathConfig` that `api/v1alpha1/register.go` registers under `aws.kropath.run` is
-  deliberately in scope and does get labelled — the spec was amended to state this explicitly and
-  added AC-9 to cover it. Only the **core** `KropathConfig` in the `kropath.run` group is
-  excluded, which is what the existing AC-8 step asserts against
-  (`tests/fixtures/crds/kropathconfig-core.yaml`). The behaviour is correct; the coverage for
-  the in-scope half of the pair is missing.
+The feature is implemented and AC-1 … AC-10 all have passing steps against
+[`controller-label-operator.md`](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md);
+no known gaps remain. Scope for labelling is decided by API group alone: the **provider-scoped**
+`KropathConfig` that `api/v1alpha1/register.go` registers under `aws.kropath.run` is deliberately
+in scope and does get labelled (AC-9); only the **core** `KropathConfig` in the `kropath.run`
+group is excluded (AC-8, `tests/fixtures/crds/kropathconfig-core.yaml`). A CRD registered under
+these API groups *after* the operator starts still gets labelled without a restart (AC-10,
+`tests/ctrl-dyn-05`).
 
 #### PolicyDocument — undocumented gap
 
