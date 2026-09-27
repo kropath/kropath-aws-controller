@@ -199,11 +199,7 @@ drifts from the code (the **Feature registry drift gate** job).
 
 ### Known gaps
 
-None currently tracked. The last entry here (`make test-chainsaw`'s "remaining suites" list
-missing several existing suites) was fixed in KRO-1263 — every `tests/*/` suite directory is now
-referenced somewhere in `make test-chainsaw`.
-
-### Label injection — deviations from spec
+#### Label injection — deviations from spec
 
 The feature is implemented and AC-1 … AC-8 all have passing steps. Two details differ from
 [`controller-label-operator.md`](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md),
@@ -224,7 +220,7 @@ and one acceptance criterion has no step yet:
   (`tests/fixtures/crds/kropathconfig-core.yaml`). The behaviour is correct; the coverage for
   the in-scope half of the pair is missing.
 
-### PolicyDocument — undocumented gap
+#### PolicyDocument — undocumented gap
 
 `CLAUDE.md` states the reconciler "exposes Prometheus metrics: `kropath_poldoc_reconcile_total`,
 `kropath_poldoc_unresolved_refs`, etc." **No such metrics exist** — the only registered metrics
