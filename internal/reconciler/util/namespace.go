@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/kropath/kropath-controller/api/v1alpha1"
+	"github.com/kropath/kropath-controller/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -86,6 +87,25 @@ const (
 	ReasonResolvedFromNamespace     = "ResolvedFromNamespace"
 	ReasonPlacementResolved         = "PlacementResolved"
 )
+
+// PlacementReasons returns the closed set of reason values
+// kropath_placement_resolutions_total can carry (spec §2.1, §2.2, §5.2) --
+// the eight values above, in declaration order. ResolvedFromNamespace is
+// included because it is a normative member of the contract set even though
+// no call site ever emits it (spec §2.2): omitting it here would make the
+// §10.2.1 label-value check reject the design §9 matcher that names it.
+func PlacementReasons() []string {
+	return []string{
+		ReasonTeamAnnotationUnsupported,
+		ReasonMissingAccountAnnotation,
+		ReasonInvalidAccountAnnotation,
+		ReasonMissingRegionAnnotation,
+		ReasonNamespaceUnreadable,
+		ReasonGlobalTierInput,
+		ReasonResolvedFromNamespace,
+		ReasonPlacementResolved,
+	}
+}
 
 // PlacementResolvedConditionType is the condition every <ResourceFamily>Config
 // reconciler publishes alongside Reconciled, naming which placement was resolved
@@ -183,10 +203,12 @@ func DerivePartition(region string) string {
 func ResolvePlacement(ctx context.Context, c client.Client, namespace string) (v1alpha1.ProviderIdentity, *PlacementError, error) {
 	var ns corev1.Namespace
 	if err := c.Get(ctx, types.NamespacedName{Name: namespace}, &ns); err != nil {
+		metrics.PlacementResolved(ReasonNamespaceUnreadable)
 		return v1alpha1.ProviderIdentity{}, nil, err
 	}
 
 	if _, hasTeamID := ns.Annotations[TeamIDAnnotation]; hasTeamID {
+		metrics.PlacementResolved(ReasonTeamAnnotationUnsupported)
 		return v1alpha1.ProviderIdentity{}, &PlacementError{
 			Reason: ReasonTeamAnnotationUnsupported,
 			Message: fmt.Sprintf(
@@ -197,6 +219,7 @@ func ResolvePlacement(ctx context.Context, c client.Client, namespace string) (v
 
 	accountID := ns.Annotations[OwnerAccountIDAnnotation]
 	if accountID == "" {
+		metrics.PlacementResolved(ReasonMissingAccountAnnotation)
 		return v1alpha1.ProviderIdentity{}, &PlacementError{
 			Reason: ReasonMissingAccountAnnotation,
 			Message: fmt.Sprintf(
@@ -205,6 +228,7 @@ func ResolvePlacement(ctx context.Context, c client.Client, namespace string) (v
 		}, nil
 	}
 	if !accountIDPattern.MatchString(accountID) {
+		metrics.PlacementResolved(ReasonInvalidAccountAnnotation)
 		return v1alpha1.ProviderIdentity{}, &PlacementError{
 			Reason: ReasonInvalidAccountAnnotation,
 			Message: fmt.Sprintf(
@@ -215,6 +239,7 @@ func ResolvePlacement(ctx context.Context, c client.Client, namespace string) (v
 
 	region := ns.Annotations[DefaultRegionAnnotation]
 	if region == "" {
+		metrics.PlacementResolved(ReasonMissingRegionAnnotation)
 		return v1alpha1.ProviderIdentity{}, &PlacementError{
 			Reason: ReasonMissingRegionAnnotation,
 			Message: fmt.Sprintf(
@@ -223,6 +248,7 @@ func ResolvePlacement(ctx context.Context, c client.Client, namespace string) (v
 		}, nil
 	}
 
+	metrics.PlacementResolved(ReasonPlacementResolved)
 	return v1alpha1.ProviderIdentity{
 		AccountID: accountID,
 		Region:    region,
@@ -292,6 +318,7 @@ func ResolveFamilyPlacement(ctx context.Context, c client.Client, namespace stri
 	}
 
 	if role == RoleGovernanceOnly {
+		metrics.PlacementResolved(ReasonGlobalTierInput)
 		cond := &metav1.Condition{
 			Type:               "Reconciled",
 			Status:             metav1.ConditionTrue,

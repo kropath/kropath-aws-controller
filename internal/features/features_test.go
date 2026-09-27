@@ -466,6 +466,24 @@ func TestNoDuplicateEntries(t *testing.T) {
 	}
 }
 
+// TestPackageIsLowercasedName pins the invariant the observability metrics'
+// `family` label derivation depends on (spec §2.3): a call site holding only
+// a schema.GroupVersionKind derives the label with
+// strings.ToLower(gvk.Kind) and needs no lookup table, which is only correct
+// if every entry's Package equals its lowercased Name. Verified for all of
+// features.All -- a strict superset of the spec's "for all 57 cascade(name,
+// pkg) entries" claim, since the invariant holds for the two
+// non-cascade-helper entries (PolicyDocument, LabelOperator) too. A future
+// family whose Package is not its lowercased Name would otherwise emit a
+// `family` metric label value that matches no other metric.
+func TestPackageIsLowercasedName(t *testing.T) {
+	for _, r := range features.All {
+		if want := strings.ToLower(r.Name); r.Package != want {
+			t.Errorf("entry %q: Package = %q, want %q (strings.ToLower(Name))", r.Name, r.Package, want)
+		}
+	}
+}
+
 // TestAllOrderIsDeterministic asserts that repeated reads of features.All
 // observe the same order (KRO-637 AC-5).
 //

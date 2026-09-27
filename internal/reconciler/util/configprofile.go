@@ -17,7 +17,9 @@ package util
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/kropath/kropath-controller/internal/metrics"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,6 +41,23 @@ const (
 	// not at all. ADR-015 §5.9: "skipping is legal; skipping invisibly is not."
 	ConfigProfileResolvedConditionType = "GlobalProfileResolved"
 )
+
+// Reason codes for global-tier config profile resolution (spec §2.1, §2.6).
+// These strings are normative: they appear verbatim as
+// ConfigProfileResolvedCondition's Reason and are the closed set
+// ConfigProfileReasons() returns.
+const (
+	ReasonProfileFound       = "ProfileFound"
+	ReasonProfileFallthrough = "ProfileFallthrough"
+	ReasonProfileUnresolved  = "ProfileUnresolved"
+)
+
+// ConfigProfileReasons returns the closed set of reason values
+// kropath_config_profile_resolutions_total can carry (spec §2.1), in the
+// order LoadConfigWithFallthrough evaluates them.
+func ConfigProfileReasons() []string {
+	return []string{ReasonProfileFound, ReasonProfileFallthrough, ReasonProfileUnresolved}
+}
 
 // objectWithGVK is client.Object plus the SetGroupVersionKind setter that
 // metav1.TypeMeta promotes onto every kropath config CR type. Generic method
@@ -63,9 +82,12 @@ func LoadConfigWithFallthrough[T any, PT interface {
 	*T
 	objectWithGVK
 }](ctx context.Context, c client.Client, gvk schema.GroupVersionKind, namespace, requestedProfile, fallthroughProfile string) (obj PT, found bool, viaFallthrough bool, err error) {
+	family := strings.ToLower(gvk.Kind)
+
 	obj = newTypedConfig[T, PT](gvk)
 	getErr := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: requestedProfile}, obj)
 	if getErr == nil {
+		metrics.ConfigProfileResolved(family, ReasonProfileFound)
 		return obj, true, false, nil
 	}
 	if client.IgnoreNotFound(getErr) != nil {
@@ -76,6 +98,7 @@ func LoadConfigWithFallthrough[T any, PT interface {
 		fallback := newTypedConfig[T, PT](gvk)
 		getErr = c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: fallthroughProfile}, fallback)
 		if getErr == nil {
+			metrics.ConfigProfileResolved(family, ReasonProfileFallthrough)
 			return fallback, true, true, nil
 		}
 		if client.IgnoreNotFound(getErr) != nil {
@@ -83,6 +106,7 @@ func LoadConfigWithFallthrough[T any, PT interface {
 		}
 	}
 
+	metrics.ConfigProfileResolved(family, ReasonProfileUnresolved)
 	return newTypedConfig[T, PT](gvk), false, false, nil
 }
 
@@ -105,7 +129,7 @@ func ConfigProfileResolvedCondition(requestedProfile string, found, viaFallthrou
 		return metav1.Condition{
 			Type:               ConfigProfileResolvedConditionType,
 			Status:             metav1.ConditionTrue,
-			Reason:             "ProfileFound",
+			Reason:             ReasonProfileFound,
 			Message:            fmt.Sprintf("global config found for profile %q", requestedProfile),
 			ObservedGeneration: observedGeneration,
 			LastTransitionTime: now,
@@ -114,7 +138,7 @@ func ConfigProfileResolvedCondition(requestedProfile string, found, viaFallthrou
 		return metav1.Condition{
 			Type:               ConfigProfileResolvedConditionType,
 			Status:             metav1.ConditionTrue,
-			Reason:             "ProfileFallthrough",
+			Reason:             ReasonProfileFallthrough,
 			Message:            fmt.Sprintf("global config not found for profile %q; fell through to %q", requestedProfile, DefaultConfigProfile),
 			ObservedGeneration: observedGeneration,
 			LastTransitionTime: now,
@@ -123,7 +147,7 @@ func ConfigProfileResolvedCondition(requestedProfile string, found, viaFallthrou
 		return metav1.Condition{
 			Type:               ConfigProfileResolvedConditionType,
 			Status:             metav1.ConditionFalse,
-			Reason:             "ProfileUnresolved",
+			Reason:             ReasonProfileUnresolved,
 			Message:            fmt.Sprintf("global config not found for profile %q or fallthrough profile %q", requestedProfile, DefaultConfigProfile),
 			ObservedGeneration: observedGeneration,
 			LastTransitionTime: now,
