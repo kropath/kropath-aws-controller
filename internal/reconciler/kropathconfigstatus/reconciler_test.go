@@ -286,3 +286,19 @@ func TestFamilyConfigKinds_ExcludesNonFamilyEntries(t *testing.T) {
 		t.Errorf("familyConfigKinds() = %v, want it to include S3Config and IAMConfig", kinds)
 	}
 }
+
+// spec §2.1: TierReasons() is the closed set the §10.2.1 label-value check
+// enumerates against, and must match reconciledCondition's own reason
+// literals exactly (asserted elsewhere in this file by TestReconcile_*).
+func TestTierReasonsReturnsAllFourValues(t *testing.T) {
+	got := TierReasons()
+	want := []string{ReasonGlobalAndLocalTier, ReasonGlobalTier, ReasonLocalTier, ReasonUnreferenced}
+	if len(got) != len(want) {
+		t.Fatalf("TierReasons() = %v (len %d), want len %d", got, len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("TierReasons()[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}

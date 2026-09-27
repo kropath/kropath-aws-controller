@@ -24,7 +24,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
+
+// readPlacementResolutionsTotal reads kropath_placement_resolutions_total{reason}
+// from the same global registry production code registers into (internal/metrics
+// exports no counter internals, by design, so this package -- external to both
+// util and metrics -- gathers the registry directly, exactly as Prometheus would).
+func readPlacementResolutionsTotal(t *testing.T, reason string) float64 {
+	t.Helper()
+	mfs, err := ctrlmetrics.Registry.Gather()
+	if err != nil {
+		t.Fatalf("Gather: %v", err)
+	}
+	for _, mf := range mfs {
+		if mf.GetName() != "kropath_placement_resolutions_total" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, lp := range m.GetLabel() {
+				if lp.GetName() == "reason" && lp.GetValue() == reason {
+					return m.GetCounter().GetValue()
+				}
+			}
+		}
+	}
+	return 0
+}
 
 func testClient(t *testing.T, objs ...runtime.Object) *fake.ClientBuilder {
 	t.Helper()
@@ -252,6 +278,134 @@ func TestResolvePlacementMessagesAreDeterministic(t *testing.T) {
 	}
 	if err1.Message != err2.Message || err1.Reason != err2.Reason {
 		t.Errorf("two evaluations diverged: %+v vs %+v", err1, err2)
+	}
+}
+
+// spec §2.1, §5.2: PlacementReasons() is the closed set the §10.2.1
+// label-value check enumerates against. All 8 values, including
+// ResolvedFromNamespace, which no call site ever emits (spec §2.2) but which
+// stays in the contract set so the design §9 matcher naming it still passes.
+func TestPlacementReasonsReturnsAllEightValues(t *testing.T) {
+	got := util.PlacementReasons()
+	want := []string{
+		util.ReasonTeamAnnotationUnsupported,
+		util.ReasonMissingAccountAnnotation,
+		util.ReasonInvalidAccountAnnotation,
+		util.ReasonMissingRegionAnnotation,
+		util.ReasonNamespaceUnreadable,
+		util.ReasonGlobalTierInput,
+		util.ReasonResolvedFromNamespace,
+		util.ReasonPlacementResolved,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("PlacementReasons() = %v (len %d), want len %d", got, len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("PlacementReasons()[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+// spec §2.2: ResolvePlacement owns 6 of the 7 emitted reason values,
+// table-driven over each.
+func TestResolvePlacementIncrementsPlacementResolutionsTotal(t *testing.T) {
+	cases := []struct {
+		name        string
+		annotations map[string]string
+		wantReason  string
+	}{
+		{"team annotation unsupported", map[string]string{
+			util.OwnerAccountIDAnnotation: "111122223333",
+			util.DefaultRegionAnnotation:  "ap-southeast-2",
+			util.TeamIDAnnotation:         "payments",
+		}, util.ReasonTeamAnnotationUnsupported},
+		{"missing account annotation", map[string]string{
+			util.DefaultRegionAnnotation: "ap-southeast-2",
+		}, util.ReasonMissingAccountAnnotation},
+		{"invalid account annotation", map[string]string{
+			util.OwnerAccountIDAnnotation: "acct-1234",
+			util.DefaultRegionAnnotation:  "ap-southeast-2",
+		}, util.ReasonInvalidAccountAnnotation},
+		{"missing region annotation", map[string]string{
+			util.OwnerAccountIDAnnotation: "111122223333",
+		}, util.ReasonMissingRegionAnnotation},
+		{"success", map[string]string{
+			util.OwnerAccountIDAnnotation: "111122223333",
+			util.DefaultRegionAnnotation:  "ap-southeast-2",
+		}, util.ReasonPlacementResolved},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ns := namespaceWithAnnotations("payments-prod", tc.annotations)
+			c := testClient(t, ns).Build()
+
+			before := readPlacementResolutionsTotal(t, tc.wantReason)
+			if _, _, err := util.ResolvePlacement(context.Background(), c, "payments-prod"); err != nil {
+				t.Fatalf("ResolvePlacement: unexpected error: %v", err)
+			}
+			if delta := readPlacementResolutionsTotal(t, tc.wantReason) - before; delta != 1 {
+				t.Errorf("kropath_placement_resolutions_total{reason=%q} delta = %v, want 1", tc.wantReason, delta)
+			}
+		})
+	}
+}
+
+// The NamespaceUnreadable emit site is ResolvePlacement's own Get failure,
+// which needs a missing namespace rather than an annotations table entry.
+func TestResolvePlacementNamespaceUnreadableIncrementsMetric(t *testing.T) {
+	c := testClient(t).Build()
+
+	before := readPlacementResolutionsTotal(t, util.ReasonNamespaceUnreadable)
+	if _, _, err := util.ResolvePlacement(context.Background(), c, "nonexistent"); err == nil {
+		t.Fatal("ResolvePlacement: expected error for missing namespace, got nil")
+	}
+	if delta := readPlacementResolutionsTotal(t, util.ReasonNamespaceUnreadable) - before; delta != 1 {
+		t.Errorf("kropath_placement_resolutions_total{reason=%q} delta = %v, want 1", util.ReasonNamespaceUnreadable, delta)
+	}
+}
+
+// spec §2.2: GlobalTierInput is ResolveFamilyPlacement's own emit, on the
+// governance-only early return that never reaches ResolvePlacement.
+func TestResolveFamilyPlacementGovernanceOnlyIncrementsGlobalTierInput(t *testing.T) {
+	ns := namespaceWithAnnotations("governance-only-ns", nil)
+	c := testClient(t, ns).Build()
+
+	before := readPlacementResolutionsTotal(t, util.ReasonGlobalTierInput)
+	result, err := util.ResolveFamilyPlacement(context.Background(), c, "governance-only-ns", 1, metav1.Now())
+	if err != nil {
+		t.Fatalf("ResolveFamilyPlacement: unexpected error: %v", err)
+	}
+	if result.Role != util.RoleGovernanceOnly {
+		t.Fatalf("Role = %v, want RoleGovernanceOnly", result.Role)
+	}
+	if delta := readPlacementResolutionsTotal(t, util.ReasonGlobalTierInput) - before; delta != 1 {
+		t.Errorf("kropath_placement_resolutions_total{reason=%q} delta = %v, want 1", util.ReasonGlobalTierInput, delta)
+	}
+}
+
+// spec §2.2's no-double-count guarantee: ResolveFamilyPlacement calls
+// ResolvePlacement internally, so a successful family resolution must
+// increment PlacementResolved exactly once, not twice.
+func TestResolveFamilyPlacementSuccessIncrementsPlacementResolvedExactlyOnce(t *testing.T) {
+	ns := namespaceWithAnnotations("payments-prod", map[string]string{
+		util.GlobalConfigNamespaceAnnotation: "platform-config",
+		util.OwnerAccountIDAnnotation:        "111122223333",
+		util.DefaultRegionAnnotation:         "ap-southeast-2",
+	})
+	c := testClient(t, ns).Build()
+
+	before := readPlacementResolutionsTotal(t, util.ReasonPlacementResolved)
+	result, err := util.ResolveFamilyPlacement(context.Background(), c, "payments-prod", 1, metav1.Now())
+	if err != nil {
+		t.Fatalf("ResolveFamilyPlacement: unexpected error: %v", err)
+	}
+	if result.Role != util.RoleResource {
+		t.Fatalf("Role = %v, want RoleResource", result.Role)
+	}
+	if delta := readPlacementResolutionsTotal(t, util.ReasonPlacementResolved) - before; delta != 1 {
+		t.Errorf("kropath_placement_resolutions_total{reason=%q} delta = %v, want exactly 1 (no double count)", util.ReasonPlacementResolved, delta)
 	}
 }
 

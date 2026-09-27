@@ -15,6 +15,7 @@ import (
 
 	"github.com/kropath/kropath-controller/api/v1alpha1"
 	"github.com/kropath/kropath-controller/internal/features"
+	"github.com/kropath/kropath-controller/internal/metrics"
 	"github.com/kropath/kropath-controller/internal/registry"
 	"github.com/kropath/kropath-controller/internal/version"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
@@ -142,6 +144,16 @@ func main() {
 	// CRD watcher: activates pending reconcilers when their CRDs arrive at runtime.
 	if err := mgr.Add(registry.NewWatcher(coord, bctx)); err != nil {
 		ctrl.Log.Error(err, "unable to add CRD watcher")
+		os.Exit(1)
+	}
+
+	// Scrape-time metrics collectors (design §6, M-14): registers every
+	// collector added via metrics.RegisterCollectorFactory once the manager's
+	// cache has synced, on every replica -- see internal/metrics for the
+	// self-registration seam feature packages use to add their own
+	// collector(s) without editing this line.
+	if err := mgr.Add(metrics.NewCollectorRunnable(mgr.GetCache(), mgr.GetAPIReader(), ctrlmetrics.Registry)); err != nil {
+		ctrl.Log.Error(err, "unable to add metrics collector runnable")
 		os.Exit(1)
 	}
 

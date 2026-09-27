@@ -48,6 +48,23 @@ import (
 // ReconciledConditionType is the condition this reconciler publishes.
 const ReconciledConditionType = "Reconciled"
 
+// Reason codes for the Reconciled condition this reconciler publishes (spec
+// §2.1). These strings are normative: they appear verbatim as the
+// condition's Reason and are the closed set TierReasons() returns.
+const (
+	ReasonGlobalAndLocalTier = "GlobalAndLocalTier"
+	ReasonGlobalTier         = "GlobalTier"
+	ReasonLocalTier          = "LocalTier"
+	ReasonUnreferenced       = "Unreferenced"
+)
+
+// TierReasons returns the closed set of reason values
+// kropath_kropathconfigstatus_configs can carry (spec §2.1), in the order
+// reconciledCondition evaluates them.
+func TierReasons() []string {
+	return []string{ReasonGlobalAndLocalTier, ReasonGlobalTier, ReasonLocalTier, ReasonUnreferenced}
+}
+
 // requeueInterval re-evaluates consumer counts even though this reconciler
 // does not watch the ~57 family Config kinds directly (watching all of them
 // would add this repo's §1 missing-CRD-kills-the-manager risk to every
@@ -237,25 +254,25 @@ func reconciledCondition(globalKinds, localKinds []string, observedGeneration in
 	switch {
 	case len(globalKinds) > 0 && len(localKinds) > 0:
 		cond.Status = metav1.ConditionTrue
-		cond.Reason = "GlobalAndLocalTier"
+		cond.Reason = ReasonGlobalAndLocalTier
 		cond.Message = fmt.Sprintf(
 			"Resolved as the global tier by %d family config kind(s) (%s) and the local tier by %d (%s).",
 			len(globalKinds), strings.Join(globalKinds, ", "), len(localKinds), strings.Join(localKinds, ", "))
 	case len(globalKinds) > 0:
 		cond.Status = metav1.ConditionTrue
-		cond.Reason = "GlobalTier"
+		cond.Reason = ReasonGlobalTier
 		cond.Message = fmt.Sprintf(
 			"Resolved as the global tier by %d family config kind(s): %s.",
 			len(globalKinds), strings.Join(globalKinds, ", "))
 	case len(localKinds) > 0:
 		cond.Status = metav1.ConditionTrue
-		cond.Reason = "LocalTier"
+		cond.Reason = ReasonLocalTier
 		cond.Message = fmt.Sprintf(
 			"Resolved as the local tier by %d family config kind(s): %s.",
 			len(localKinds), strings.Join(localKinds, ", "))
 	default:
 		cond.Status = metav1.ConditionFalse
-		cond.Reason = "Unreferenced"
+		cond.Reason = ReasonUnreferenced
 		cond.Message = "No <ResourceFamily>Config resolves this KropathConfig as its global or local tier. " +
 			"Verify the namespace and the aws.kropath.run/global-config-namespace annotation."
 	}
