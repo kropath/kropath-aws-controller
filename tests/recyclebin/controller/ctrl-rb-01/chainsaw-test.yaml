@@ -13,15 +13,28 @@
 # limitations under the License.
 #
 # ctrl-rb-01: RecycleBinConfig controller cascade integration tests.
-# Covers AC-11 through AC-14 from the EBS Recycle Bin spec:
+# Covers AC-11, AC-13, AC-14 from the EBS Recycle Bin spec:
 #   AC-11: mandatory governance fields written to effectiveConfig.mandatory
-#   AC-12: lockRule true from global KropathConfig overrides RecycleBinConfig
 #   AC-13: tags from KropathConfig.mandatory and RecycleBinConfig.mandatory merge (KPC wins)
 #   AC-14: syncedLabels from RecycleBinConfig.mandatory propagate
 # Requires:
 #   - kind cluster with kropath-operator deployed
 #   - KropathConfig CRD applied
 #   - RecycleBinConfig CRD applied (crds/awsrecyclebinconfig.yaml)
+#
+# AC-12 (lockRule true from global KropathConfig overrides RecycleBinConfig) is
+# intentionally NOT covered here. It requires KropathConfig.spec.mandatory.ebsrecyclebin,
+# a field the kropath-controller Go cascade (internal/cascade/ebsrecyclebin.go,
+# feat(KRO-1039)) already reads, but which was never added to the real KropathConfig
+# CRD in kropath-aws -- unlike every other family section (KRO-305, KRO-728, KRO-866,
+# etc.), RecycleBin never got its companion "add <family> section to KropathConfig CRD"
+# PR. Confirmed zero "recyclebin" references in kropath-aws/crds/kropathconfig.yaml.
+# Do not add this field to tests/fixtures/crds/awskropathconfig.yaml to make AC-12
+# pass here -- that would fabricate schema `crds-verify`/TestSpecDefaultDrift is
+# specifically designed to reject, and would let the fixture assert a governance
+# path that does not actually work against a real cluster. Re-add AC-12 (ac12-setup.yaml
+# / ac12-assert.yaml, restored from git history at this commit's parent) once the
+# kropath-aws companion CRD PR lands.
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -49,21 +62,6 @@ spec:
       cleanup:
         - delete:
             file: ac11-setup.yaml
-
-    # -----------------------------------------------------------------------
-    # ac12: global KropathConfig.mandatory.ebsrecyclebin.lockRule=true overrides
-    # RecycleBinConfig lockRule=false (zero value / not enforced).
-    # -----------------------------------------------------------------------
-    - name: ac12-lockreule-mandatory-override
-      try:
-        - apply:
-            file: ac12-setup.yaml
-        - assert:
-            file: ac12-assert.yaml
-            timeout: 30s
-      cleanup:
-        - delete:
-            file: ac12-setup.yaml
 
     # -----------------------------------------------------------------------
     # ac13: tags from KropathConfig.mandatory and RecycleBinConfig.mandatory
