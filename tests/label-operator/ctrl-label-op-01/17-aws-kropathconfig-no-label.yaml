@@ -1,0 +1,6 @@
+apiVersion: aws.kropath.run/v1alpha1
+kind: KropathConfig
+metadata:
+  name: baseline
+  namespace: kro-system
+spec: {}
