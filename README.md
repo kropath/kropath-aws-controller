@@ -203,17 +203,6 @@ drifts from the code (the **Feature registry drift gate** job).
 
 ### Known gaps
 
-#### Label injection — deviations from spec
-
-The feature is implemented and AC-1 … AC-10 all have passing steps against
-[`controller-label-operator.md`](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md);
-no known gaps remain. Scope for labelling is decided by API group alone: the **provider-scoped**
-`KropathConfig` that `api/v1alpha1/register.go` registers under `aws.kropath.run` is deliberately
-in scope and does get labelled (AC-9); only the **core** `KropathConfig` in the `kropath.run`
-group is excluded (AC-8, `tests/fixtures/crds/kropathconfig-core.yaml`). A CRD registered under
-these API groups *after* the operator starts still gets labelled without a restart (AC-10,
-`tests/ctrl-dyn-05`).
-
 #### PolicyDocument — undocumented gap
 
 `CLAUDE.md` states the reconciler "exposes Prometheus metrics: `kropath_poldoc_reconcile_total`,
