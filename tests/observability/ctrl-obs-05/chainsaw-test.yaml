@@ -1,0 +1,107 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-05 — labeloperator metrics (AC-13, AC-14).
+#
+# Spec: kropath-core docs/specs/controller-observability-metrics.md §1.4, §2.5, §8.4.
+# Requires the controller to be running on :18080 (METRICS_PORT in Makefile) with
+# the standard CRD set applied via `make chainsaw-start chainsaw-wait`. Order
+# independent — every provider group's discovery attempt already happened once at
+# startup regardless of what other suites do.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-05
+spec:
+  description: "labeloperator watched-kinds gauge, discovery outcome, patch outcome (ctrl-obs-05)"
+  steps:
+    # AC-13: aws.kropath.run discovery ran at startup and found kinds to watch.
+    - name: ac13-labeloperator-kinds-watched
+      try:
+        - script:
+            timeout: 30s
+            content: |
+              set -e
+              metrics=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              watched=$(echo "$metrics" | grep 'kropath_labeloperator_watched_kinds{group="aws.kropath.run"}' | awk '{print $2}')
+              if [ -z "$watched" ]; then
+                echo "FAIL: kropath_labeloperator_watched_kinds{group=\"aws.kropath.run\"} not found"
+                exit 1
+              fi
+              # Integer comparison: watched must be > 0.
+              if [ "${watched%.*}" -le 0 ]; then
+                echo "FAIL: kropath_labeloperator_watched_kinds{group=\"aws.kropath.run\"} = $watched, want > 0"
+                exit 1
+              fi
+              echo "PASS: kropath_labeloperator_watched_kinds{group=\"aws.kropath.run\"} = $watched"
+
+              if ! echo "$metrics" | grep -q 'kropath_labeloperator_group_discovery_total{group="aws.kropath.run",outcome="discovered"} 1'; then
+                echo "FAIL: expected kropath_labeloperator_group_discovery_total{group=\"aws.kropath.run\",outcome=\"discovered\"} 1"
+                echo "$metrics" | grep 'kropath_labeloperator_group_discovery_total{group="aws.kropath.run"' || true
+                exit 1
+              fi
+              echo "PASS: aws.kropath.run group discovery outcome=discovered, exactly one startup attempt"
+
+    # AC-14: an unlabeled AWSIAMRole gets patched, incrementing the patches counter.
+    - name: ac14-label-patch-counted
+      try:
+        - script:
+            timeout: 30s
+            content: |
+              set -e
+
+              before=$(curl -fsS http://127.0.0.1:18080/metrics | \
+                grep 'kropath_labeloperator_patches_total{group="aws.kropath.run",outcome="patched"}' | \
+                awk '{print $2}')
+              before=${before:-0}
+
+              cat <<'EOF' | kubectl apply -f -
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: AWSIAMRole
+              metadata:
+                name: ac14-role
+                namespace: payments-prod
+              spec: {}
+              EOF
+
+              # Wait for the label-operator reconciler to patch the resource-name label.
+              for i in $(seq 1 30); do
+                label=$(kubectl get awsiamrole ac14-role -n payments-prod \
+                  -o jsonpath='{.metadata.labels.aws\.kropath\.run/resource-name}' 2>/dev/null || true)
+                if [ "$label" = "ac14-role" ]; then
+                  echo "PASS: ac14-role labeled on iteration $i"
+                  break
+                fi
+                sleep 1
+              done
+              if [ "$label" != "ac14-role" ]; then
+                echo "FAIL: ac14-role never received the resource-name label"
+                exit 1
+              fi
+
+              after=$(curl -fsS http://127.0.0.1:18080/metrics | \
+                grep 'kropath_labeloperator_patches_total{group="aws.kropath.run",outcome="patched"}' | \
+                awk '{print $2}')
+              after=${after:-0}
+
+              if ! awk -v a="$before" -v b="$after" 'BEGIN{exit !(b>a)}'; then
+                echo "FAIL: kropath_labeloperator_patches_total{outcome=patched} did not increment (before=$before, after=$after)"
+                exit 1
+              fi
+              echo "PASS: kropath_labeloperator_patches_total{group=\"aws.kropath.run\",outcome=\"patched\"} incremented ($before -> $after)"
+      cleanup:
+        - script:
+            content: |
+              kubectl delete awsiamrole ac14-role -n payments-prod --ignore-not-found=true

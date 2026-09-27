@@ -91,6 +91,7 @@ CHAINSAW_FLAGS   := --parallel 1 --skip-delete --report-format JUNIT-TEST --repo
         test-rds test-secretsmanager test-sns test-sqs test-stepfunctions \
         test-version test-features \
         test-dyn-01 test-dyn-02 test-dyn-03 test-dyn \
+        test-obs-05 test-obs-06-pending test-obs-06-activated \
         test-organizations \
         test-s3advanced \
         test-chainsaw \
@@ -549,6 +550,18 @@ test-dyn-05: ## Run label-operator late-kind Chainsaw suite (ctrl-dyn-05).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ctrl-dyn-05/ $(CHAINSAW_FLAGS)
 
+test-obs-05: ## Run labeloperator metrics Chainsaw suite (ctrl-obs-05).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/observability/ctrl-obs-05/ $(CHAINSAW_FLAGS)
+
+test-obs-06-pending: ## Run registry pending-timestamp Chainsaw suite (ctrl-obs-06 AC-15). Requires elbconfig pending — run right after test-dyn-01.
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/observability/ctrl-obs-06-pending/ $(CHAINSAW_FLAGS)
+
+test-obs-06-activated: ## Run registry activation-deletes-series Chainsaw suite (ctrl-obs-06 AC-16). Requires elbconfig active — run right after test-dyn-02.
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/observability/ctrl-obs-06-activated/ $(CHAINSAW_FLAGS)
+
 test-dyn: ## Run dynamic CRD detection suites 01 → 02 → 03 in the required order.
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ctrl-dyn-01/ $(CHAINSAW_FLAGS)
@@ -561,8 +574,15 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 	# ctrl-dyn-01 requires ELBConfig CRD absent (pending state).
 	# ctrl-dyn-02 installs the CRD; ctrl-dyn-03 requires it already present.
 	# Run each as a separate chainsaw invocation to guarantee FIFO execution.
+	#
+	# ctrl-obs-06-pending (AC-15) and ctrl-obs-06-activated (AC-16) piggyback on
+	# this same elbconfig pending→active window — see
+	# tests/observability/ctrl-obs-06-pending/chainsaw-test.yaml for why they
+	# are not a single suite. They must not move independently of ctrl-dyn-01/02.
 	$(CHAINSAW) test tests/ctrl-dyn-01/ $(CHAINSAW_FLAGS)
+	$(CHAINSAW) test tests/observability/ctrl-obs-06-pending/ $(CHAINSAW_FLAGS)
 	$(CHAINSAW) test tests/ctrl-dyn-02/ $(CHAINSAW_FLAGS)
+	$(CHAINSAW) test tests/observability/ctrl-obs-06-activated/ $(CHAINSAW_FLAGS)
 	$(CHAINSAW) test tests/ctrl-dyn-03/ $(CHAINSAW_FLAGS)
 	# ctrl-dyn-04/05 need their own optional CRD (awslambdafunction /
 	# gcpcloudspannerinstanceconfig) absent at suite start, same as 01-03, but
@@ -578,7 +598,8 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 		tests/ecr/ tests/ecrpublic/ tests/ecs/ tests/efs/ tests/eks/ tests/elasticache/ tests/elb/ \
 		tests/emr/ tests/eventbridge/ tests/features/ tests/glue/ tests/iam/ tests/keyspaces/ tests/kinesis/ \
 		tests/kms/ tests/kropathconfig/ tests/label-operator/ tests/lambda/ tests/managedprometheus/ \
-		tests/memorydb/ tests/mq/ tests/msk/ tests/mwaa/ tests/networkfirewall/ tests/opensearch/ tests/pipes/ \
+		tests/memorydb/ tests/mq/ tests/msk/ tests/mwaa/ tests/networkfirewall/ tests/observability/ctrl-obs-05/ \
+		tests/opensearch/ tests/pipes/ \
 		tests/policy/ tests/quicksight/ tests/ram/ tests/rds/ tests/recyclebin/ tests/route53/ tests/s3/ \
 		tests/s3advanced/ tests/sagemaker/ tests/secretsmanager/ tests/ses/ tests/sns/ tests/sqs/ tests/ssm/ \
 		tests/stepfunctions/ tests/version/ tests/waf/ \

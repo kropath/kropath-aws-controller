@@ -1,0 +1,65 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-06-pending — AC-15 half of ctrl-obs-06 (registry pending timestamp).
+#
+# Spec: kropath-core docs/specs/controller-observability-metrics.md §1.7, §8.7 (M-17).
+#
+# Why this is a separate suite from ctrl-obs-06-activated (AC-16), rather than
+# one directory: the only reconciler in this repo that is ever "Required-gated
+# pending" against tests/fixtures/crds-optional/ is elbconfig, and ctrl-dyn-01
+# / ctrl-dyn-02 already own its pending -> active transition with a strict
+# FIFO dependency (see Makefile). This suite reuses that same window rather
+# than installing its own CRD, so it MUST run after ctrl-dyn-01 (which leaves
+# elbconfig pending) and before ctrl-dyn-02 (which installs the CRD and would
+# make elbconfig active, invalidating AC-15's precondition). See
+# ctrl-obs-06-activated/ for the AC-16 half, which runs right after
+# ctrl-dyn-02 instead.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-06-pending
+spec:
+  description: "registry reconciler-pending timestamp gauge (ctrl-obs-06 AC-15)"
+  steps:
+    # AC-15: elbconfig is pending (per ctrl-dyn-01); its pending-since timestamp
+    # must be present and within 120s of now.
+    - name: ac15-reconciler-pending-timestamp
+      try:
+        - script:
+            timeout: 30s
+            content: |
+              set -e
+              metrics=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              line=$(echo "$metrics" | grep 'kropath_registry_reconciler_pending_since_timestamp_seconds{package="elbconfig"}' || true)
+              if [ -z "$line" ]; then
+                echo "FAIL: no pending-since series for package=\"elbconfig\""
+                echo "$metrics" | grep 'kropath_registry_reconciler_pending_since_timestamp_seconds' || echo "(no pending-since series at all)"
+                exit 1
+              fi
+              echo "series: $line"
+
+              # Prometheus prints large gauge values (a Unix timestamp is ~1.79e9)
+              # in scientific notation, e.g. "1.790544385e+09" -- shell arithmetic
+              # can't parse that directly, so convert through awk.
+              ts=$(echo "$line" | awk '{print $2}')
+              now=$(date +%s)
+              age=$(awk -v ts="$ts" -v now="$now" 'BEGIN{printf "%d", now - ts}')
+
+              if [ "$age" -lt 0 ] || [ "$age" -gt 120 ]; then
+                echo "FAIL: pending-since timestamp age = ${age}s, want within [0,120]s of now"
+                exit 1
+              fi
+              echo "PASS: elbconfig pending-since timestamp is ${age}s old"

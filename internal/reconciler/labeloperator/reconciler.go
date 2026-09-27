@@ -34,6 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	"github.com/kropath/kropath-controller/internal/metrics"
 )
 
 // providerGroups maps each watched API group to its resource-name label key.
@@ -76,12 +78,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err := r.Client.Patch(ctx, target, client.RawPatch(types.MergePatchType, patchData)); err != nil {
 		if apierrors.IsNotFound(err) {
+			metrics.LabelOperatorPatch(r.GVK.Group, "not_found")
 			return ctrl.Result{}, nil
 		}
+		metrics.LabelOperatorPatch(r.GVK.Group, "error")
 		return ctrl.Result{}, fmt.Errorf("patching label on %s %s/%s: %w",
 			r.GVK.Kind, req.Namespace, req.Name, err)
 	}
 
+	metrics.LabelOperatorPatch(r.GVK.Group, "patched")
 	r.Log.Info("patched resource-name label",
 		"kind", r.GVK.Kind, "name", req.Name, "namespace", req.Namespace)
 	return ctrl.Result{}, nil
@@ -181,8 +186,11 @@ func setupGroup(mgr ctrl.Manager, log logr.Logger, disc discovery.DiscoveryInter
 	resources, err := disc.ServerResourcesForGroupVersion(gv)
 	if err != nil {
 		log.Info("label-operator: no resources found for group, skipping", "gv", gv)
+		metrics.LabelOperatorGroupDiscovery(group, "error")
+		metrics.LabelOperatorWatchedKinds(group, 0)
 		return nil
 	}
+	registered := 0
 	for _, res := range resources.APIResources {
 		if strings.Contains(res.Name, "/") {
 			continue
@@ -193,6 +201,13 @@ func setupGroup(mgr ctrl.Manager, log logr.Logger, disc discovery.DiscoveryInter
 			return err
 		}
 		handles[gvk.String()] = c
+		registered++
 	}
+	if registered == 0 {
+		metrics.LabelOperatorGroupDiscovery(group, "empty")
+	} else {
+		metrics.LabelOperatorGroupDiscovery(group, "discovered")
+	}
+	metrics.LabelOperatorWatchedKinds(group, registered)
 	return nil
 }
