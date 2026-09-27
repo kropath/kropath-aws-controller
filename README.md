@@ -199,17 +199,7 @@ drifts from the code (the **Feature registry drift gate** job).
 
 ### Known gaps
 
-- **`make test-chainsaw`'s "remaining suites" list is itself missing several existing suites**
-  (`cloudfront`, `cloudtrail`, `cognito`, `bedrock`, `sagemaker`, `opensearch`, `dsql`, `ssm`,
-  `keyspaces`, `quicksight`, `networkfirewall`, `backup`, `managedprometheus`, `recyclebin`,
-  `route53`, `lambda`, `ecrpublic`, `kinesis`, `mq`, `msk`, `glue`, `athena`, `emr`, `acm`,
-  `dynamodb`) — each has its own `test-<service>` target and passes standalone, but
-  `make test-chainsaw` (the CI gate) never runs them. Discovered while adding the eight cascade
-  Chainsaw suites in KRO-1259; out of scope for that fix since it is a pre-existing, unrelated
-  drift in the "run everything" target rather than a missing suite. Worth its own follow-up
-  ticket.
-
-### Label injection — deviations from spec
+#### Label injection — deviations from spec
 
 The feature is implemented and AC-1 … AC-8 all have passing steps. Two details differ from
 [`controller-label-operator.md`](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md),
@@ -230,7 +220,7 @@ and one acceptance criterion has no step yet:
   (`tests/fixtures/crds/kropathconfig-core.yaml`). The behaviour is correct; the coverage for
   the in-scope half of the pair is missing.
 
-### PolicyDocument — undocumented gap
+#### PolicyDocument — undocumented gap
 
 `CLAUDE.md` states the reconciler "exposes Prometheus metrics: `kropath_poldoc_reconcile_total`,
 `kropath_poldoc_unresolved_refs`, etc." **No such metrics exist** — the only registered metrics
