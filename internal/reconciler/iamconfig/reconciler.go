@@ -179,7 +179,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.IAMConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list IAMConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "iamconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -215,7 +215,7 @@ func (r *Reconciler) requestsForIAMConfigChange(ctx context.Context, obj client.
 
 	var list v1alpha1.IAMConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list IAMConfig configs for IAMConfig change")
+		util.RecordMapFuncListError(r.Log, "iamconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.IAMConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list IAMConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "iamconfig", "namespace", err)
 		return nil
 	}
 

@@ -252,7 +252,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.DocumentDBConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list DocumentDBConfig for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "documentdbconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -288,7 +288,7 @@ func (r *Reconciler) requestsForDocumentDBConfigChange(ctx context.Context, obj 
 
 	var list v1alpha1.DocumentDBConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list DocumentDBConfig for DocumentDBConfig change")
+		util.RecordMapFuncListError(r.Log, "documentdbconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -318,7 +318,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.DocumentDBConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list DocumentDBConfig for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "documentdbconfig", "namespace", err)
 		return nil
 	}
 

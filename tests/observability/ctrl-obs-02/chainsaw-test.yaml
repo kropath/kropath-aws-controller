@@ -1,0 +1,108 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-02 — placement verdict and transition metrics (AC-4, AC-5): a
+# namespace missing default-region shows up on both the reason counter and the
+# per-namespace gauge, and adding the annotation fires a transition (spec §2.5).
+#
+# Every assertion is a delta against a baseline captured immediately before the
+# mutating step -- see ctrl-obs-01's header for why an absolute-value
+# assertion would be flaky in the shared-cluster `make test-chainsaw` run.
+#
+# Requires the controller running on :18080 (METRICS_PORT), started by
+# `make chainsaw-start chainsaw-wait` before this suite runs.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-02
+spec:
+  steps:
+    # AC-4: a resource namespace missing default-region increments the reason
+    # counter and appears on the per-namespace gauge.
+    - name: ac-4-missing-region-annotation
+      try:
+        - script:
+            timeout: 60s
+            content: |
+              set -e
+              metric_value() {
+                curl -fsS http://127.0.0.1:18080/metrics | grep -F "$1" | awk '{print $NF}'
+              }
+              reason_before=$(metric_value 'kropath_placement_resolutions_total{reason="MissingRegionAnnotation"}')
+              reason_before=${reason_before:-0}
+              status_before=$(metric_value 'kropath_namespaceplacement_namespaces{status="MissingRegionAnnotation"}')
+              status_before=${status_before:-0}
+
+              kubectl apply -f ac04-setup.yaml
+
+              for i in $(seq 1 25); do
+                reason_after=$(metric_value 'kropath_placement_resolutions_total{reason="MissingRegionAnnotation"}')
+                reason_after=${reason_after:-0}
+                status_after=$(metric_value 'kropath_namespaceplacement_namespaces{status="MissingRegionAnnotation"}')
+                status_after=${status_after:-0}
+                reason_delta=$((reason_after - reason_before))
+                status_delta=$((status_after - status_before))
+                # kropath_placement_resolutions_total is a call counter, not a
+                # transition counter: the reconciler's own status write
+                # re-triggers a second watch-driven reconcile, so a single
+                # namespace legitimately increments it more than once. Assert
+                # "incremented" (>= 1), matching AC-4's wording, not an exact
+                # call count that depends on reconcile-loop internals.
+                if [ "$reason_delta" -ge 1 ] && [ "$status_delta" -eq 1 ]; then
+                  echo "PASS: reason delta=$reason_delta, status gauge delta=$status_delta"
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "FAIL: reason delta=$reason_delta (want >= 1), status gauge delta=$status_delta (want 1)"
+              exit 1
+
+    # AC-5: adding default-region fires a to="ok" transition, the "ok" gauge
+    # appears, and the MissingRegionAnnotation gauge clears.
+    - name: ac-5-placement-verdict-transition
+      try:
+        - script:
+            timeout: 60s
+            content: |
+              set -e
+              metric_value() {
+                curl -fsS http://127.0.0.1:18080/metrics | grep -F "$1" | awk '{print $NF}'
+              }
+              missing_before=$(metric_value 'kropath_namespaceplacement_namespaces{status="MissingRegionAnnotation"}')
+              missing_before=${missing_before:-0}
+              ok_before=$(metric_value 'kropath_namespaceplacement_namespaces{status="ok"}')
+              ok_before=${ok_before:-0}
+              transitions_before=$(metric_value 'kropath_namespaceplacement_transitions_total{to="ok"}')
+              transitions_before=${transitions_before:-0}
+
+              kubectl apply -f ac05-setup.yaml
+
+              for i in $(seq 1 25); do
+                missing_after=$(metric_value 'kropath_namespaceplacement_namespaces{status="MissingRegionAnnotation"}')
+                missing_after=${missing_after:-0}
+                ok_after=$(metric_value 'kropath_namespaceplacement_namespaces{status="ok"}')
+                ok_after=${ok_after:-0}
+                transitions_after=$(metric_value 'kropath_namespaceplacement_transitions_total{to="ok"}')
+                transitions_after=${transitions_after:-0}
+                missing_delta=$((missing_after - missing_before))
+                ok_delta=$((ok_after - ok_before))
+                transitions_delta=$((transitions_after - transitions_before))
+                if [ "$missing_delta" -eq -1 ] && [ "$ok_delta" -eq 1 ] && [ "$transitions_delta" -eq 1 ]; then
+                  echo "PASS: missing delta=$missing_delta, ok gauge delta=$ok_delta, transitions delta=$transitions_delta"
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "FAIL: missing delta=$missing_delta (want -1), ok gauge delta=$ok_delta (want 1), transitions delta=$transitions_delta (want 1)"
+              exit 1

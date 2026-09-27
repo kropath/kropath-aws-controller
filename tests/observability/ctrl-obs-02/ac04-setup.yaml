@@ -1,0 +1,10 @@
+# AC-4: ac04-ns designates itself as its own global-config-namespace (the
+# same self-referencing pattern tests/s3 and others use for a single-namespace
+# resource) and carries owner-account-id but not default-region.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ac04-ns
+  annotations:
+    aws.kropath.run/global-config-namespace: ac04-ns
+    services.k8s.aws/owner-account-id: "123456789012"

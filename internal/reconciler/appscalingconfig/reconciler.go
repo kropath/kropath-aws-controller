@@ -231,7 +231,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.AppScalingConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list AppScalingConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "appscalingconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -267,7 +267,7 @@ func (r *Reconciler) requestsForAppScalingConfigChange(ctx context.Context, obj 
 
 	var list v1alpha1.AppScalingConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list AppScalingConfig configs for AppScalingConfig change")
+		util.RecordMapFuncListError(r.Log, "appscalingconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -297,7 +297,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.AppScalingConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list AppScalingConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "appscalingconfig", "namespace", err)
 		return nil
 	}
 

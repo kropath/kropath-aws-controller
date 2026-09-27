@@ -1,0 +1,16 @@
+# AC-6: obs03-gov-ns carries no global-config-namespace annotation, so it is
+# governance-only. An S3Config living in it is a global-tier input and
+# receives no effectiveConfig.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: obs03-gov-ns
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: S3Config
+metadata:
+  name: ac06-cfg
+  namespace: obs03-gov-ns
+spec:
+  mandatory: {}
+  defaults: {}

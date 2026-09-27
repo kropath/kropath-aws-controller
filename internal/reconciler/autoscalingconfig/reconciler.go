@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.AutoScalingConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list AutoScalingConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "autoscalingconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForAutoScalingConfigChange(ctx context.Context, obj
 
 	var list v1alpha1.AutoScalingConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list AutoScalingConfig configs for AutoScalingConfig change")
+		util.RecordMapFuncListError(r.Log, "autoscalingconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.AutoScalingConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list AutoScalingConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "autoscalingconfig", "namespace", err)
 		return nil
 	}
 

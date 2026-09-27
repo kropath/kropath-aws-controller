@@ -213,7 +213,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.ECRPublicConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list ECRPublicConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "ecrpublicconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -249,7 +249,7 @@ func (r *Reconciler) requestsForECRPublicConfigChange(ctx context.Context, obj c
 
 	var list v1alpha1.ECRPublicConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list ECRPublicConfig configs for ECRPublicConfig change")
+		util.RecordMapFuncListError(r.Log, "ecrpublicconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -279,7 +279,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.ECRPublicConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list ECRPublicConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "ecrpublicconfig", "namespace", err)
 		return nil
 	}
 

@@ -205,7 +205,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.EFSConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list EFSConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "efsconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -241,7 +241,7 @@ func (r *Reconciler) requestsForEFSConfigChange(ctx context.Context, obj client.
 
 	var list v1alpha1.EFSConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list EFSConfig configs for EFSConfig change")
+		util.RecordMapFuncListError(r.Log, "efsconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -271,7 +271,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.EFSConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list EFSConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "efsconfig", "namespace", err)
 		return nil
 	}
 

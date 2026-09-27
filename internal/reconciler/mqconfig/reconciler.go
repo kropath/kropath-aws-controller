@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.MQConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list MQConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "mqconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForMQConfigChange(ctx context.Context, obj client.O
 
 	var list v1alpha1.MQConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list MQConfig configs for MQConfig change")
+		util.RecordMapFuncListError(r.Log, "mqconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.MQConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list MQConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "mqconfig", "namespace", err)
 		return nil
 	}
 

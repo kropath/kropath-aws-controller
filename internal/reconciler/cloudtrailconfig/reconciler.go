@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.CloudTrailConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list CloudTrailConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "cloudtrailconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForCloudTrailConfigChange(ctx context.Context, obj 
 
 	var list v1alpha1.CloudTrailConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list CloudTrailConfig configs for CloudTrailConfig change")
+		util.RecordMapFuncListError(r.Log, "cloudtrailconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.CloudTrailConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list CloudTrailConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "cloudtrailconfig", "namespace", err)
 		return nil
 	}
 

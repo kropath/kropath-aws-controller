@@ -217,7 +217,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.LambdaConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list LambdaConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "lambdaconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -253,7 +253,7 @@ func (r *Reconciler) requestsForLambdaConfigChange(ctx context.Context, obj clie
 
 	var list v1alpha1.LambdaConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list LambdaConfig configs for LambdaConfig change")
+		util.RecordMapFuncListError(r.Log, "lambdaconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -283,7 +283,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.LambdaConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list LambdaConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "lambdaconfig", "namespace", err)
 		return nil
 	}
 

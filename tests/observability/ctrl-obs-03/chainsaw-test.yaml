@@ -1,0 +1,149 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-03 — cascade withholding and config profile resolution metrics
+# (AC-6 .. AC-8): a governance-only namespace withholds effectiveConfig and is
+# visible on the withheld gauge; a resolved config publishes ProfileFound and
+# adds nothing to the withheld gauge; a config whose requested profile is
+# absent falls through to the default and publishes ProfileFallthrough with
+# the lowercase package name as its family label (spec §2.3, §2.6, §3.3).
+#
+# Every assertion is a delta against a baseline captured immediately before
+# the mutating step -- see ctrl-obs-01's header for why an absolute-value
+# assertion would be flaky in the shared-cluster `make test-chainsaw` run.
+#
+# Requires the controller running on :18080 (METRICS_PORT), started by
+# `make chainsaw-start chainsaw-wait` before this suite runs.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-03
+spec:
+  steps:
+    # AC-6: a governance-only namespace's S3Config withholds effectiveConfig
+    # with reason=GlobalTierInput, and the shared placement counter agrees.
+    - name: ac-6-governance-only-withholds
+      try:
+        - script:
+            timeout: 60s
+            content: |
+              set -e
+              metric_value() {
+                curl -fsS http://127.0.0.1:18080/metrics | grep -F "$1" | awk '{print $NF}'
+              }
+              reason_before=$(metric_value 'kropath_placement_resolutions_total{reason="GlobalTierInput"}')
+              reason_before=${reason_before:-0}
+              withheld_before=$(metric_value 'kropath_cascade_effective_config_withheld{family="s3config",reason="GlobalTierInput"}')
+              withheld_before=${withheld_before:-0}
+
+              kubectl apply -f ac06-setup.yaml
+
+              for i in $(seq 1 25); do
+                reason_after=$(metric_value 'kropath_placement_resolutions_total{reason="GlobalTierInput"}')
+                reason_after=${reason_after:-0}
+                withheld_after=$(metric_value 'kropath_cascade_effective_config_withheld{family="s3config",reason="GlobalTierInput"}')
+                withheld_after=${withheld_after:-0}
+                reason_delta=$((reason_after - reason_before))
+                withheld_delta=$((withheld_after - withheld_before))
+                # kropath_placement_resolutions_total is a call counter, not a
+                # transition counter: the reconciler's own status write
+                # re-triggers a second watch-driven reconcile, so a single
+                # object legitimately increments it more than once. Assert
+                # "incremented" (>= 1), matching AC-6's wording, not an exact
+                # call count that depends on reconcile-loop internals.
+                if [ "$reason_delta" -ge 1 ] && [ "$withheld_delta" -eq 1 ]; then
+                  echo "PASS: reason delta=$reason_delta, withheld delta=$withheld_delta"
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "FAIL: reason delta=$reason_delta (want >= 1), withheld delta=$withheld_delta (want 1)"
+              exit 1
+
+    # AC-7: a resolved S3Config publishes ProfileFound and adds nothing to the
+    # s3config withheld total (summed across every reason, since the gauge is
+    # per-family, not per-object).
+    - name: ac-7-cascade-publishes-effective-config
+      try:
+        - script:
+            timeout: 60s
+            content: |
+              set -e
+              metric_value() {
+                curl -fsS http://127.0.0.1:18080/metrics | grep -F "$1" | awk '{print $NF}'
+              }
+              withheld_total_s3config() {
+                curl -fsS http://127.0.0.1:18080/metrics \
+                  | grep -F 'kropath_cascade_effective_config_withheld{family="s3config"' \
+                  | awk '{sum+=$NF} END{print sum+0}'
+              }
+              profile_before=$(metric_value 'kropath_config_profile_resolutions_total{family="s3config",reason="ProfileFound"}')
+              profile_before=${profile_before:-0}
+              withheld_before=$(withheld_total_s3config)
+
+              kubectl apply -f ac07-setup.yaml
+
+              for i in $(seq 1 25); do
+                profile_after=$(metric_value 'kropath_config_profile_resolutions_total{family="s3config",reason="ProfileFound"}')
+                profile_after=${profile_after:-0}
+                withheld_after=$(withheld_total_s3config)
+                profile_delta=$((profile_after - profile_before))
+                withheld_delta=$((withheld_after - withheld_before))
+                # kropath_config_profile_resolutions_total is a call counter
+                # (see AC-6's comment above) -- assert "incremented" (>= 1).
+                if [ "$profile_delta" -ge 1 ] && [ "$withheld_delta" -eq 0 ]; then
+                  echo "PASS: profile delta=$profile_delta, withheld total delta=$withheld_delta"
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "FAIL: profile delta=$profile_delta (want >= 1), withheld total delta=$withheld_delta (want 0)"
+              exit 1
+
+    # AC-8: a config whose requested profile is absent falls through to the
+    # default profile -- ProfileFallthrough, family label is the lowercase
+    # package name, never the Go Kind "S3Config".
+    - name: ac-8-profile-fallthrough
+      try:
+        - script:
+            timeout: 60s
+            content: |
+              set -e
+              metric_value() {
+                curl -fsS http://127.0.0.1:18080/metrics | grep -F "$1" | awk '{print $NF}'
+              }
+              before=$(metric_value 'kropath_config_profile_resolutions_total{family="s3config",reason="ProfileFallthrough"}')
+              before=${before:-0}
+
+              kubectl apply -f ac08-setup.yaml
+
+              for i in $(seq 1 25); do
+                after=$(metric_value 'kropath_config_profile_resolutions_total{family="s3config",reason="ProfileFallthrough"}')
+                after=${after:-0}
+                delta=$((after - before))
+                # A call counter (see AC-6's comment above) -- assert
+                # "incremented" (>= 1).
+                if [ "$delta" -ge 1 ]; then
+                  echo "PASS: ProfileFallthrough delta=$delta"
+                  # Never the Go Kind: no series may carry family="S3Config".
+                  if curl -fsS http://127.0.0.1:18080/metrics | grep -F 'kropath_config_profile_resolutions_total{family="S3Config"'; then
+                    echo "FAIL: found a family=\"S3Config\" series -- must be lowercase"
+                    exit 1
+                  fi
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "FAIL: ProfileFallthrough delta not >= 1 (before=$before after=$after)"
+              exit 1
