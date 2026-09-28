@@ -39,7 +39,7 @@ flowchart TD
     subgraph F1["1. Config cascade"]
         KC["KropathConfig<br/>org / namespace"]
         SVC["&lt;Service&gt;Config<br/>per resource type"]
-        CASC["57 cascade reconcilers<br/>mandatory &gt; spec &gt; defaults,<br/>map-merged per tier (ADR-010)"]
+        CASC["57 cascade reconcilers<br/>mandatory &gt; spec &gt; defaults,<br/>map-merged per tier"]
         EFF["status.effectiveConfig"]
         KC --> CASC
         SVC --> CASC
@@ -71,8 +71,8 @@ flowchart TD
 ```
 
 **1. Config cascade (57 reconcilers).** Each watches its `<Service>Config` plus `KropathConfig`,
-runs the merge helper in `internal/cascade`, and writes `status.effectiveConfig` (ADR-010). The
-merge is map-based and last-writer-wins per tier, so `mandatory` always beats a user's `spec`.
+runs the merge helper in `internal/cascade`, and writes `status.effectiveConfig`. The merge is
+map-based and last-writer-wins per tier, so `mandatory` always beats a user's `spec`.
 This is the only feature that produces `effectiveConfig`.
 
 **2. PolicyDocument.** A distinct reconciler with a distinct CRD and output. It resolves
@@ -82,10 +82,9 @@ This is the only feature that produces `effectiveConfig`.
 `status.resolvedDocumentJSON`. It sets `Ready`, `SidConflict`, and `SourceNotReady` conditions.
 A raw `spec.documentJSON` is validated and passed through unmerged.
 
-**3. Label injection** ([spec](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md),
-cycle `ctrl-label-op-01`). Orthogonal to config resolution: it makes provider resources
-*discoverable*. It discovers every kind under `aws.`/`gcp.`/`azure.kropath.run` and runs one
-controller per GVK, ensuring `<provider>.kropath.run/resource-name` always equals
+**3. Label injection** (test suite `ctrl-label-op-01`). Orthogonal to config resolution: it makes
+provider resources *discoverable*. It discovers every kind under `aws.`/`gcp.`/`azure.kropath.run`
+and runs one controller per GVK, ensuring `<provider>.kropath.run/resource-name` always equals
 `metadata.name`. Without it, the RGDs' `selector.matchLabels` lookups silently fail to resolve —
 which is why features 1 and 2 both depend on it, and why it is an operator rather than a
 mutating webhook (it repairs resources created before deployment or during an outage).
@@ -181,17 +180,19 @@ Neither reads or writes `effectiveConfig`; both are separate features with their
 | PolicyDocument | `PolicyDocument` | `PolicyDocument`, `KropathConfig` | `status.resolvedDocumentJSON` | `policy/phase2-refs`, `policy/phase3-merge` | 11 | ⏳ Pending |
 | Label injection | `LabelOperator` | every kind under `aws.`/`gcp.`/`azure.kropath.run` | `metadata.labels[<provider>.kropath.run/resource-name]` | `label-operator/ctrl-label-op-01` | 9 | ⏳ Pending |
 
-Both are implemented and covered. The label-operator reconciler ensures that CRDs registered under
-the provider groups (`aws.kropath.run`, `gcp.kropath.run`, `azure.kropath.run`) are correctly
-labelled even when they are discovered after the operator starts. The PolicyDocument reconciler
-resolves policy statement references and detects conflicts in merged policies.
+Both are implemented and covered. The label-operator reconciler keeps the
+`<provider>.kropath.run/resource-name` label correct on every CR under
+`aws.`/`gcp.`/`azure.kropath.run` — including CRDs that only get registered after the operator has
+already started. The PolicyDocument reconciler resolves policy statement references to ARNs and
+flags conflicts when merging statements from multiple sources.
 
-Two further suites cover the binary rather than a reconciler: `features/ctrl-features-01` (5
-steps) exercises the `/features` endpoint and `version/ctrl-version-01` (2 steps) the build-info
-metrics.
+#### Feature registry checks
 
-`docs/features.yaml` is generated from the registry by `make features-gen` and CI fails if it
-drifts from the code (the **Feature registry drift gate** job).
+Two more test suites check the binary itself rather than a single reconciler:
+`features/ctrl-features-01` exercises the `/features` endpoint, and `version/ctrl-version-01`
+checks the build-info metrics.
+`docs/features.yaml` is a generated snapshot of the reconciler registry, and CI fails if it drifts
+from the code.
 
 ### Known gaps
 
@@ -295,11 +296,11 @@ or locally:
 
 ## ACK install conformance check
 
-kropath resolves `effectiveConfig.aws.accountId`/`.region` by reading the namespace annotations
-ACK's own CARM feature already honours (ADR-015 §5.8). kropath and ACK are two independent
-resolvers of the same placement question, and they agree only when the ACK install satisfies five
-preconditions (ADR-015 §5.8.4) — kropath has no way to verify any of them from inside a reconcile
-loop. `cmd/conformance-check` is a standalone, read-only CLI that inspects an existing install and
+kropath resolves `effectiveConfig.aws.accountId`/`.region` by reading the same namespace
+annotations ACK's own CARM feature already honours. kropath and ACK are two independent resolvers
+of the same placement question, and they agree only when the ACK install satisfies five
+preconditions that kropath has no way to verify from inside a reconcile loop.
+`cmd/conformance-check` is a standalone, read-only CLI that inspects an existing install and
 reports which preconditions hold:
 
 ```bash
