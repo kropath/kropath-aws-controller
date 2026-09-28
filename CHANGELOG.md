@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.15.0](https://github.com/kropath/kropath-controller/compare/v0.14.0...v0.15.0) (2026-09-28)
+
+
+### Features
+
+* **KRO-1258:** add namingTemplate to Route53Config cascade ([#150](https://github.com/kropath/kropath-controller/issues/150)) ([d91ec74](https://github.com/kropath/kropath-controller/commit/d91ec74e4df14161253e3f9d5141557d0856f33e))
+* **KRO-1278:** metrics foundation, collector pattern, non-leader runnable ([#159](https://github.com/kropath/kropath-controller/issues/159)) ([6de077e](https://github.com/kropath/kropath-controller/commit/6de077e4fc1e3def679a73eadb3069f1e225c822))
+* **KRO-1279:** metrics for config cascade, KropathConfigStatus, NamespacePlacement ([#161](https://github.com/kropath/kropath-controller/issues/161)) ([6657bf3](https://github.com/kropath/kropath-controller/commit/6657bf39d0155dbfa0a1aaf1d22626c8046832a4))
+* **KRO-1280:** policydocument observability metrics + M-10 collect-all ([#160](https://github.com/kropath/kropath-controller/issues/160)) ([41d2e07](https://github.com/kropath/kropath-controller/commit/41d2e0773f297745b5fe865a03e56a2bc4f72159))
+* **KRO-1281:** label injection + registry/dynamic-CRD metrics ([#162](https://github.com/kropath/kropath-controller/issues/162)) ([66c87a3](https://github.com/kropath/kropath-controller/commit/66c87a3cebed5797f8f8f919272091d2dea12052))
+* **KRO-1282:** monitoring alerting rules, label-value CI check, and metrics docs ([#163](https://github.com/kropath/kropath-controller/issues/163)) ([51cd633](https://github.com/kropath/kropath-controller/commit/51cd63388201bdee6769fd6b5731a3aeaada3c1f))
+* **KRO-1283:** grafana dashboard and non-leader collector Chainsaw suite ([#165](https://github.com/kropath/kropath-controller/issues/165)) ([f5b236f](https://github.com/kropath/kropath-controller/commit/f5b236f627601a752a66650cf953636a2cee5b7c))
+
+
+### Bug Fixes
+
+* **KRO-1263:** wire 21 orphaned Chainsaw suites into test-chainsaw ([#152](https://github.com/kropath/kropath-controller/issues/152)) ([5c7c8c5](https://github.com/kropath/kropath-controller/commit/5c7c8c580fc677e99e60dd2dffdbecfe5464f2b2))
+
+
+### Dependencies
+
+* bump the kubernetes group across 1 directory with 3 updates ([#164](https://github.com/kropath/kropath-controller/issues/164)) ([8fd946a](https://github.com/kropath/kropath-controller/commit/8fd946af87de7945a47bb6fc19c4fc75fc06903c))
+
 ## [0.14.0](https://github.com/kropath/kropath-controller/compare/v0.13.0...v0.14.0) (2026-09-26)
 
 
