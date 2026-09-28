@@ -20,11 +20,13 @@
 #
 # Test isolation — unique-name-per-AC, no inter-step deletes: each AC owns
 # distinct PolicyDocument names (ac09-doc, ac10-doc, ac11-doc + ac11-bogus-N,
-# ac12-doc), per docs/frequent-chainsaw-errors.md. AC-9's step runs first and
-# is the only one whose /metrics assertion needs an exact
-# kropath_policydocument_documents{reason="SourceNotReady"} value, since
-# later ACs in this suite also leave SourceNotReady documents behind;
-# checking it before those steps apply keeps the count exact.
+# ac12-doc), per docs/frequent-chainsaw-errors.md. `unresolved_refs` and
+# `documents{reason}` are cluster-wide gauges (no namespace label, by spec),
+# so with --skip-delete any PolicyDocument left behind by an unrelated suite
+# that already ran in this invocation (e.g. ctrl-label-op-01's
+# kro-system/admin-boundary) also counts. AC-9 snapshots both series before
+# applying its fixtures and asserts the *delta*, not an absolute value, so
+# the check is correct regardless of what else has already run.
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -36,6 +38,16 @@ spec:
     # collect-all change means unresolved_refs sums to 3, not 1.
     - name: ac9-three-unresolved-refs
       try:
+        - script:
+            timeout: 10s
+            content: |
+              set -e
+              output=$(curl -fsS http://127.0.0.1:18080/metrics)
+              mkdir -p /tmp/kropath-controller
+              echo "$output" | awk '/^kropath_policydocument_unresolved_refs\{/ {sum += $NF} END {print sum+0}' \
+                > /tmp/kropath-controller/ac09-base-unresolved
+              echo "$output" | awk '/^kropath_policydocument_documents\{reason="SourceNotReady"\}/ {print $NF; found=1} END {if (!found) print 0}' \
+                > /tmp/kropath-controller/ac09-base-notready
         - apply:
             file: ac09-setup.yaml
         - assert:
@@ -46,23 +58,28 @@ spec:
             content: |
               set -e
               output=$(curl -fsS http://127.0.0.1:18080/metrics)
+              base_unresolved=$(cat /tmp/kropath-controller/ac09-base-unresolved)
+              base_notready=$(cat /tmp/kropath-controller/ac09-base-notready)
 
               sum=$(echo "$output" | awk '/^kropath_policydocument_unresolved_refs\{/ {sum += $NF} END {print sum+0}')
-              echo "kropath_policydocument_unresolved_refs sum: $sum"
-              if [ "$sum" -ne 3 ]; then
-                echo "FAIL: expected unresolved_refs to sum to 3, got $sum"
+              delta=$((sum - base_unresolved))
+              echo "kropath_policydocument_unresolved_refs sum: $sum (baseline $base_unresolved, delta $delta)"
+              if [ "$delta" -ne 3 ]; then
+                echo "FAIL: expected unresolved_refs to increase by 3, got delta $delta"
                 echo "$output" | grep '^kropath_policydocument_unresolved_refs{' || true
                 exit 1
               fi
 
               docs_line=$(echo "$output" | grep '^kropath_policydocument_documents{reason="SourceNotReady"}' || true)
-              echo "documents{reason=SourceNotReady}: $docs_line"
               value=$(echo "$docs_line" | awk '{print $NF}')
-              if [ "$value" != "1" ]; then
-                echo "FAIL: expected kropath_policydocument_documents{reason=\"SourceNotReady\"} 1, got '$docs_line'"
+              value=${value:-0}
+              docs_delta=$((value - base_notready))
+              echo "documents{reason=SourceNotReady}: $docs_line (baseline $base_notready, delta $docs_delta)"
+              if [ "$docs_delta" -ne 1 ]; then
+                echo "FAIL: expected documents{reason=\"SourceNotReady\"} to increase by 1, got delta $docs_delta"
                 exit 1
               fi
-              echo "PASS: AC-9 unresolved_refs sums to 3, documents{reason=SourceNotReady} is 1"
+              echo "PASS: AC-9 unresolved_refs increases by 3, documents{reason=SourceNotReady} increases by 1"
 
     # AC-10: a ref naming a kind whose CRD is absent must record outcome="crd_absent",
     # never "pending", and must not log a Reconciler error (the swallow at
