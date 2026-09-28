@@ -1,0 +1,159 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Canonical Prometheus alerting rules for kropath-controller.
+#
+# This file — not config/monitoring/prometheusrule.yaml — is the source of truth.
+# `promtool check rules` validates it directly, and `make monitoring-gen`
+# regenerates the PrometheusRule CR from it. Do not hand-edit prometheusrule.yaml.
+#
+# Every gauge query uses `max by (...)`, never `sum by (...)` (design M-15): the
+# collectors register on every replica (M-14), so all replicas report the same
+# cluster-wide value and `sum` over N replicas reads N times too high. The one
+# exception is kropath_registry_reconciler_pending_since_timestamp_seconds, which
+# uses `min by (package)` — see the KropathReconcilerPendingTooLong rule below for
+# why (design M-15 exception, A.6).
+#
+# Spec: kropath-core docs/specs/controller-observability-metrics.md §4.
+# Design: kropath-core docs/design/controller-observability-metrics.md §9, §10.
+groups:
+  - name: kropath-controller.governance
+    rules:
+      - alert: KropathConfigUnreferenced
+        expr: max (kropath_kropathconfigstatus_configs{reason="Unreferenced"}) > 0
+        for: 10m
+        labels:
+          severity: critical
+          component: kropath-controller
+        annotations:
+          summary: A KropathConfig is resolved by no <Family>Config.
+          description: >-
+            {{ $value }} KropathConfig object(s) have been Unreferenced for 10m. Tenant
+            resources governed by them receive no effective config. This is the KRO-1104
+            failure mode.
+      - alert: KropathConfigFamilyKindsUnavailable
+        expr: max (kropath_kropathconfigstatus_family_kinds_unavailable) > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: kropath-controller
+        annotations:
+          summary: Consumer counts are understated; the Unreferenced gauge cannot be trusted.
+          description: >-
+            {{ $value }} <Family>Config CRD(s) are absent, so a correctly placed KropathConfig
+            may be reported Unreferenced.
+      - alert: KropathEffectiveConfigWithheld
+        expr: max by (family, reason) (kropath_cascade_effective_config_withheld) > 0
+        for: 10m
+        labels:
+          severity: critical
+          component: kropath-controller
+        annotations:
+          summary: '{{ $labels.family }} publishes no effectiveConfig ({{ $labels.reason }}).'
+          description: >-
+            RGDs reading status.effectiveConfig for {{ $labels.family }} see an empty document
+            and will fail in CEL far from this cause.
+
+  - name: kropath-controller.placement
+    rules:
+      - alert: KropathPlacementResolutionFailing
+        expr: |-
+          sum by (reason) (rate(kropath_placement_resolutions_total{
+              reason!~"PlacementResolved|ResolvedFromNamespace"}[15m])) > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: kropath-controller
+        annotations:
+          summary: Placement is rejecting namespaces ({{ $labels.reason }}).
+          description: A sustained failure rate usually means a bad onboarding batch.
+
+  - name: kropath-controller.policydocument
+    rules:
+      - alert: KropathPolicyDocumentsNotReady
+        expr: max by (reason) (kropath_policydocument_documents{reason!="DocumentResolved"}) > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: kropath-controller
+        annotations:
+          summary: PolicyDocuments stuck on {{ $labels.reason }}.
+      - alert: KropathPolicyRefCRDAbsent
+        expr: sum by (kind) (rate(kropath_policydocument_ref_resolutions_total{outcome="crd_absent"}[15m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: kropath-controller
+        annotations:
+          summary: PolicyDocuments reference {{ $labels.kind }}, whose CRD is not installed.
+          description: >-
+            Distinct from waiting on an ARN — install the CRD. kind="other" means a kind
+            kropath does not watch at all.
+
+  - name: kropath-controller.labelinjection
+    rules:
+      - alert: KropathLabelInjectionOff
+        expr: |-
+          absent(kropath_labeloperator_watched_kinds)
+            or max by (group) (kropath_labeloperator_watched_kinds) == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: kropath-controller
+        annotations:
+          summary: No label-injection controller is registered for {{ $labels.group }}.
+          description: >-
+            A transient discovery failure at startup disables labelling for the whole group
+            until the pod restarts.
+
+  - name: kropath-controller.cascade
+    rules:
+      - alert: KropathCascadeChangeEventsDropped
+        expr: sum by (family) (rate(kropath_cascade_mapfunc_errors_total[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: kropath-controller
+        annotations:
+          summary: '{{ $labels.family }} is dropping batches of change events.'
+          description: A config edit may never propagate, with nothing else to see.
+
+  - name: kropath-controller.registry
+    rules:
+      - alert: KropathReconcilerPendingTooLong
+        expr: time() - min by (package) (kropath_registry_reconciler_pending_since_timestamp_seconds) > 3600
+        for: 5m
+        labels:
+          severity: warning
+          component: kropath-controller
+        annotations:
+          summary: '{{ $labels.package }} has been pending over an hour.'
+          description: >-
+            min, not max: the value is a per-process observation, so max lets one restarted
+            replica resolve this while the CRD is still missing (design M-15 exception, A.6).
+            An absent series means nothing is pending, so no absent() guard is needed.
+
+  - name: kropath-controller.meta
+    rules:
+      - alert: KropathMetricsCollectorFailing
+        expr: sum by (collector) (rate(kropath_metrics_collect_errors_total[10m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: kropath-controller
+        annotations:
+          summary: Collector {{ $labels.collector }} cannot list; its series are absent.
+          description: >-
+            An absent series is indistinguishable from "no objects in a bad state" — the exact
+            silent success this feature exists to remove.
