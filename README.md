@@ -181,18 +181,10 @@ Neither reads or writes `effectiveConfig`; both are separate features with their
 | PolicyDocument | `PolicyDocument` | `PolicyDocument`, `KropathConfig` | `status.resolvedDocumentJSON` | `policy/phase2-refs`, `policy/phase3-merge` | 11 | ⏳ Pending |
 | Label injection | `LabelOperator` | every kind under `aws.`/`gcp.`/`azure.kropath.run` | `metadata.labels[<provider>.kropath.run/resource-name]` | `label-operator/ctrl-label-op-01` | 9 | ⏳ Pending |
 
-Both are implemented and covered. The label-operator suite has a step for AC-1 … AC-10 of the
-[spec](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md)
-(label added for AWS config, GCP config and non-config kinds; wrong value corrected; correct
-value is a no-op; resource still admitted while the operator is down; retroactive labelling on
-recovery; core `kropath.run` group excluded; provider-scoped `KropathConfig` under
-`aws.kropath.run` included). AC-10 — a CRD registered under these API groups *after* the operator
-starts still gets labelled without a restart — is covered by `tests/ctrl-dyn-05`: the CRD watcher
-(`internal/registry/watcher.go`) detects a new provider-group CRD becoming served and calls
-`labeloperator`'s wildcard `AddKindWatch` (`internal/registry/entries.go`), which registers a
-fresh runtime controller for that kind. The PolicyDocument suites
-cover ref resolution (`phase2-refs`) and source merging with `Sid` conflict detection
-(`phase3-merge`). See [Known gaps](#known-gaps) for the deviations from spec that remain.
+Both are implemented and covered. The label-operator reconciler ensures that CRDs registered under
+the provider groups (`aws.kropath.run`, `gcp.kropath.run`, `azure.kropath.run`) are correctly
+labelled even when they are discovered after the operator starts. The PolicyDocument reconciler
+resolves policy statement references and detects conflicts in merged policies.
 
 Two further suites cover the binary rather than a reconciler: `features/ctrl-features-01` (5
 steps) exercises the `/features` endpoint and `version/ctrl-version-01` (2 steps) the build-info
@@ -207,22 +199,6 @@ drifts from the code (the **Feature registry drift gate** job).
 
 `CLAUDE.md` describes `tests/policy/` as "three phases (CRD validation, ref resolution, source
 merge)"; only `phase2-refs` and `phase3-merge` are present.
-
-#### Observability
-
-Every reconciler now exposes outcome-based Prometheus metrics — see
-[`docs/metrics.md`](docs/metrics.md) for the full list, and
-[`config/monitoring/rules.yaml`](config/monitoring/rules.yaml) for the alerting rules generated
-from them. This was not always true: `internal/version/metrics.go`'s build-info and
-feature-enabled gauges were the *only* registered metrics before `internal/registry/metrics.go`
-landed, and PolicyDocument, config cascade, label injection, KropathConfigStatus,
-NamespacePlacement, and the registry/dynamic-CRD-detection path had none of their own. If you are
-reading an older revision of this file, do not trust a "no metrics exist" claim without checking
-`docs/metrics.md` first.
-
-Generic per-reconciler reconcile counts come from controller-runtime for free
-(`controller_runtime_reconcile_total{controller="<name>"}`) and need no additional
-instrumentation in this repo.
 
 ## Requirements
 
