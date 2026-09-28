@@ -1,14 +1,38 @@
 {
   "title": "kropath-controller",
-  "description": "One dashboard, not a suite (design §10.1). Panels exist to satisfy the §10.2 bidirectional metric-name check: every metric named in spec §1 with no dedicated alert gets a panel here instead. Every gauge query uses `max by`, per design M-15.",
-  "tags": ["kropath", "kropath-controller"],
+  "uid": "kropath-controller",
+  "description": "Panels for the four kropath_* metrics no alert rule in config/monitoring/rules.yaml references, plus the surrounding context needed to read them (spec docs/specs/controller-observability-metrics.md §4.1). Not part of any default deploy -- provisioned by the consumer (design §10.3).",
+  "tags": ["kropath-controller"],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {}
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
       "title": "Config profile fallthrough by family",
+      "description": "kropath_config_profile_resolutions_total -- how often a requested config profile silently fell through to default, by family.",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
       "targets": [
         {
+          "refId": "A",
           "expr": "sum by (family) (rate(kropath_config_profile_resolutions_total{reason=\"ProfileFallthrough\"}[15m]))",
           "legendFormat": "{{family}}"
         }
@@ -17,9 +41,13 @@
     {
       "id": 2,
       "title": "Unresolved policy refs",
+      "description": "kropath_policydocument_unresolved_refs -- which ref kind and status field is holding PolicyDocuments back.",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "targets": [
         {
+          "refId": "A",
           "expr": "max by (kind, field) (kropath_policydocument_unresolved_refs)",
           "legendFormat": "{{kind}} / {{field}}"
         }
@@ -28,20 +56,28 @@
     {
       "id": 3,
       "title": "Sid conflict rate",
+      "description": "kropath_policydocument_sid_conflicts_total -- rate of a class of authoring error the reason gauge shows only as a level.",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "targets": [
         {
+          "refId": "A",
           "expr": "sum(rate(kropath_policydocument_sid_conflicts_total[15m]))",
-          "legendFormat": "sid conflicts"
+          "legendFormat": "sid conflicts/s"
         }
       ]
     },
     {
       "id": 4,
       "title": "Label patch outcomes",
+      "description": "kropath_labeloperator_patches_total by group and outcome.",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "targets": [
         {
+          "refId": "A",
           "expr": "sum by (group, outcome) (rate(kropath_labeloperator_patches_total[15m]))",
           "legendFormat": "{{group}} / {{outcome}}"
         }
@@ -50,9 +86,13 @@
     {
       "id": 5,
       "title": "Group discovery outcomes",
+      "description": "kropath_labeloperator_group_discovery_total by group and outcome.",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
       "targets": [
         {
+          "refId": "A",
           "expr": "sum by (group, outcome) (rate(kropath_labeloperator_group_discovery_total[15m]))",
           "legendFormat": "{{group}} / {{outcome}}"
         }
@@ -61,9 +101,13 @@
     {
       "id": 6,
       "title": "Placement verdicts",
+      "description": "kropath_namespaceplacement_namespaces -- current verdict distribution across resource namespaces. Gauge query uses max by (M-15): every replica reports the same cluster-wide value.",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
       "targets": [
         {
+          "refId": "A",
           "expr": "max by (status) (kropath_namespaceplacement_namespaces)",
           "legendFormat": "{{status}}"
         }
@@ -72,9 +116,13 @@
     {
       "id": 7,
       "title": "Placement transitions",
+      "description": "kropath_namespaceplacement_transitions_total -- verdict transitions by the verdict transitioned to. Events fire only on transition, so this counter is the durable record.",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
       "targets": [
         {
+          "refId": "A",
           "expr": "sum by (to) (rate(kropath_namespaceplacement_transitions_total[1h]))",
           "legendFormat": "{{to}}"
         }
@@ -83,9 +131,13 @@
     {
       "id": 8,
       "title": "CRD watch events",
+      "description": "kropath_registry_crd_watch_events_total by outcome -- distinguishes no CRDs appearing from CRDs appearing and being rejected.",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
       "targets": [
         {
+          "refId": "A",
           "expr": "sum by (outcome) (rate(kropath_registry_crd_watch_events_total[15m]))",
           "legendFormat": "{{outcome}}"
         }
@@ -94,9 +146,13 @@
     {
       "id": 9,
       "title": "Optional kinds attached",
+      "description": "kropath_registry_optional_kinds_attached -- whether AddKindWatch actually attached the optional kinds a reconciler expected. Gauge query uses max by (M-15).",
       "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
       "targets": [
         {
+          "refId": "A",
           "expr": "max by (package) (kropath_registry_optional_kinds_attached)",
           "legendFormat": "{{package}}"
         }

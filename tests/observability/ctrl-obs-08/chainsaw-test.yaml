@@ -1,0 +1,92 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-08 — AC-19 only (non-leader collector exposure, M-14's premise).
+#
+# Spec: kropath-core docs/specs/controller-observability-metrics.md §3.6, §7 AC-19/AC-20.
+#
+# This suite runs last in the shared-cluster observability batch, after
+# ctrl-obs-01..07 have already created KropathConfig/S3Config/PolicyDocument/
+# namespace state, so every §3 collector has real objects to report on
+# without this suite creating its own fixtures.
+#
+# AC-19: make chainsaw-start runs a single controller process, which is
+# necessarily the leader under leader election, so there is no non-leader
+# process to scrape here. Per the spec's own AC-19 note, the multi-replica
+# half is a unit-test concern (TestCollectorRunnable_NeedLeaderElection in
+# internal/metrics/registration_runnable_test.go asserts
+# NeedLeaderElection() == false, the whole basis of the M-14 contract) and
+# this Chainsaw scenario only asserts that every §3 collector series is
+# present on the one running process.
+#
+# AC-20 (collect-error induction) is intentionally NOT implemented in this
+# suite. Investigation during KRO-1283 found the ticket's proposed mechanism
+# (remove `list` from a ClusterRole bound to "the controller's service
+# account") has no effect in this repo's Chainsaw harness: chainsaw-start
+# runs the manager with ctrl.GetConfigOrDie() against $HOME/.kube/config,
+# whose kind-cluster admin identity is bound to cluster-admin via the
+# kubeadm:cluster-admins group (confirmed via `kubectl auth whoami` and
+# `kubectl get clusterrolebindings`) — entirely independent of the
+# kropath-cascade-reconciler ClusterRole (or any other role in
+# config/rbac/), which is not bound to any ServiceAccount in this repo at
+# all. No ClusterRoleBinding, impersonation, or restart-with-different-
+# identity mechanism exists today to make the running manager authenticate
+# as anything other than that admin identity. A FlowSchema/
+# PriorityLevelConfiguration-based request-rejection alternative was also
+# tried and did not reject the List call either. The List-error contract
+# itself (no samples emitted, kropath_metrics_collect_errors_total
+# increments) is verified today by
+# TestTierConfigsCollector_ListErrorEmitsNoSamples and
+# TestWithheldConfigCollector_ListErrorEmitsNoSamples in internal/metrics.
+# See the KRO-1283 Multica comment for the full findings; this is flagged
+# there for a Design Reviewer/human decision rather than resolved silently
+# here.
+#
+# Requires the controller running on :18080 (METRICS_PORT), started by
+# `make chainsaw-start chainsaw-wait` before this suite runs.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-08
+spec:
+  description: "Non-leader collector exposure (ctrl-obs-08 AC-19)"
+  steps:
+    - name: ac-19-every-collector-series-present
+      try:
+        - script:
+            timeout: 30s
+            content: |
+              set -e
+              metrics=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              fail=0
+              for metric in \
+                kropath_policydocument_documents \
+                kropath_policydocument_unresolved_refs \
+                kropath_cascade_effective_config_withheld \
+                kropath_kropathconfigstatus_configs \
+                kropath_namespaceplacement_namespaces \
+              ; do
+                if ! echo "$metrics" | grep -q "^${metric}{"; then
+                  echo "FAIL: no series for collector metric ${metric}"
+                  fail=1
+                else
+                  echo "PASS: ${metric} has at least one series"
+                fi
+              done
+
+              if [ "$fail" -ne 0 ]; then
+                exit 1
+              fi
+              echo "PASS: every §3 collector metric is present on this (leader) process"
