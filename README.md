@@ -177,7 +177,7 @@ Neither reads or writes `effectiveConfig`; both are separate features with their
 
 | Feature | Reconciler | CR(s) watched | Output | Suite | Steps | AWS integration |
 |---|---|---|---|---|---|---|
-| PolicyDocument | `PolicyDocument` | `PolicyDocument`, `KropathConfig` | `status.resolvedDocumentJSON` | `policy/phase2-refs`, `policy/phase3-merge` | 11 | ⏳ Pending |
+| PolicyDocument | `PolicyDocument` | `PolicyDocument`, `KropathConfig` | `status.resolvedDocumentJSON` | `policy/phase1-schema`, `policy/phase2-refs`, `policy/phase3-merge` | 18 | ⏳ Pending |
 | Label injection | `LabelOperator` | every kind under `aws.`/`gcp.`/`azure.kropath.run` | `metadata.labels[<provider>.kropath.run/resource-name]` | `label-operator/ctrl-label-op-01` | 9 | ⏳ Pending |
 
 Both are implemented and covered. The label-operator reconciler keeps the
@@ -193,13 +193,6 @@ Two more test suites check the binary itself rather than a single reconciler:
 checks the build-info metrics.
 `docs/features.yaml` is a generated snapshot of the reconciler registry, and CI fails if it drifts
 from the code.
-
-### Known gaps
-
-#### PolicyDocument — test-suite phase count
-
-`CLAUDE.md` describes `tests/policy/` as "three phases (CRD validation, ref resolution, source
-merge)"; only `phase2-refs` and `phase3-merge` are present.
 
 ## Requirements
 

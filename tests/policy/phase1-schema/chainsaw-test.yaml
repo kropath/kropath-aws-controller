@@ -1,0 +1,194 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: policydocument-phase1-schema
+spec:
+  steps:
+    - name: ac-pd1-1-reject-documentjson-and-statements
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: both-documentjson-and-statements
+                namespace: default
+              spec:
+                documentJSON: '{"Version":"2012-10-17","Statement":[]}'
+                statements:
+                  - effect: Allow
+                    actions: ["s3:GetObject"]
+                    resources:
+                      - arn: "arn:aws:s3:::some-bucket"
+            expect:
+              - match:
+                  apiVersion: aws.kropath.run/v1alpha1
+                  kind: PolicyDocument
+                check:
+                  ($error != null): true
+
+    - name: ac-pd1-2-reject-documentjson-and-sources
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: both-documentjson-and-sources
+                namespace: default
+              spec:
+                documentJSON: '{"Version":"2012-10-17","Statement":[]}'
+                sources:
+                  - name: some-other-document
+            expect:
+              - match:
+                  apiVersion: aws.kropath.run/v1alpha1
+                  kind: PolicyDocument
+                check:
+                  ($error != null): true
+
+    - name: ac-pd1-3-accept-documentjson-only
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: documentjson-only
+                namespace: default
+              spec:
+                documentJSON: '{"Version":"2012-10-17","Statement":[]}'
+        - assert:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: documentjson-only
+                namespace: default
+      cleanup:
+        - delete:
+            ref:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              name: documentjson-only
+              namespace: default
+
+    - name: ac-pd1-4-accept-statements-only
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: statements-only
+                namespace: default
+              spec:
+                statements:
+                  - sid: AllowS3Read
+                    effect: Allow
+                    actions: ["s3:GetObject"]
+                    resources:
+                      - arn: "arn:aws:s3:::some-bucket"
+        - assert:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: statements-only
+                namespace: default
+      cleanup:
+        - delete:
+            ref:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              name: statements-only
+              namespace: default
+
+    - name: ac-pd1-5-reject-invalid-effect
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: invalid-effect
+                namespace: default
+              spec:
+                statements:
+                  - effect: Maybe
+                    actions: ["s3:GetObject"]
+                    resources:
+                      - arn: "arn:aws:s3:::some-bucket"
+            expect:
+              - match:
+                  apiVersion: aws.kropath.run/v1alpha1
+                  kind: PolicyDocument
+                check:
+                  ($error != null): true
+
+    - name: ac-pd1-6-reject-principal-arn-and-ref-both-set
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: principal-arn-and-ref
+                namespace: default
+              spec:
+                statements:
+                  - effect: Allow
+                    actions: ["s3:GetObject"]
+                    principals:
+                      - type: AWS
+                        arn: "arn:aws:iam::123456789012:root"
+                        ref:
+                          kind: AWSIAMRole
+                          name: some-role
+                    resources:
+                      - arn: "arn:aws:s3:::some-bucket"
+            expect:
+              - match:
+                  apiVersion: aws.kropath.run/v1alpha1
+                  kind: PolicyDocument
+                check:
+                  ($error != null): true
+
+    - name: ac-pd1-7-reject-resource-arn-and-ref-both-set
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: resource-arn-and-ref
+                namespace: default
+              spec:
+                statements:
+                  - effect: Allow
+                    actions: ["s3:GetObject"]
+                    resources:
+                      - arn: "arn:aws:s3:::some-bucket"
+                        ref:
+                          kind: AWSS3Bucket
+                          name: some-bucket
+            expect:
+              - match:
+                  apiVersion: aws.kropath.run/v1alpha1
+                  kind: PolicyDocument
+                check:
+                  ($error != null): true
