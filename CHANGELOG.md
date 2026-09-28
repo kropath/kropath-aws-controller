@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/kropath/kropath-controller/compare/v0.15.0...v0.15.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* **KRO-1355:** add missing PolicyDocument phase1-schema Chainsaw suite ([#168](https://github.com/kropath/kropath-controller/issues/168)) ([fbd7d78](https://github.com/kropath/kropath-controller/commit/fbd7d78ab355f6db81f292d1b064451407445b8b))
+
 ## [0.15.0](https://github.com/kropath/kropath-controller/compare/v0.14.0...v0.15.0) (2026-09-28)
 
 
