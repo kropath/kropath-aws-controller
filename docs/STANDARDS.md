@@ -98,7 +98,7 @@ The PolicyDocument reconciler resolves `spec.statements[].principals[].ref` and
 2. `status.arn` — fallback for kinds whose ARN cannot be predicted ahead of creation.
 
 A ref that resolves to neither leaves the document unresolved and is counted by
-`kropath_poldoc_unresolved_refs`.
+`kropath_policydocument_unresolved_refs` (see `docs/metrics.md`).
 
 ## Commit and release convention
 

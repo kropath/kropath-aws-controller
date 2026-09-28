@@ -203,13 +203,26 @@ drifts from the code (the **Feature registry drift gate** job).
 
 ### Known gaps
 
-#### PolicyDocument — undocumented gap
+#### PolicyDocument — test-suite phase count
 
-`CLAUDE.md` states the reconciler "exposes Prometheus metrics: `kropath_poldoc_reconcile_total`,
-`kropath_poldoc_unresolved_refs`, etc." **No such metrics exist** — the only registered metrics
-are the build-info and feature-enabled gauges in `internal/version/metrics.go`. `CLAUDE.md` also
-describes `tests/policy/` as "three phases (CRD validation, ref resolution, source merge)";
-only `phase2-refs` and `phase3-merge` are present.
+`CLAUDE.md` describes `tests/policy/` as "three phases (CRD validation, ref resolution, source
+merge)"; only `phase2-refs` and `phase3-merge` are present.
+
+#### Observability
+
+Every reconciler now exposes outcome-based Prometheus metrics — see
+[`docs/metrics.md`](docs/metrics.md) for the full list, and
+[`config/monitoring/rules.yaml`](config/monitoring/rules.yaml) for the alerting rules generated
+from them. This was not always true: `internal/version/metrics.go`'s build-info and
+feature-enabled gauges were the *only* registered metrics before `internal/registry/metrics.go`
+landed, and PolicyDocument, config cascade, label injection, KropathConfigStatus,
+NamespacePlacement, and the registry/dynamic-CRD-detection path had none of their own. If you are
+reading an older revision of this file, do not trust a "no metrics exist" claim without checking
+`docs/metrics.md` first.
+
+Generic per-reconciler reconcile counts come from controller-runtime for free
+(`controller_runtime_reconcile_total{controller="<name>"}`) and need no additional
+instrumentation in this repo.
 
 ## Requirements
 
@@ -219,6 +232,7 @@ only `phase2-refs` and `phase3-merge` are present.
 | [kind](https://kind.sigs.k8s.io/) | v0.25.0 | local integration-test cluster |
 | [Chainsaw](https://kyverno.github.io/chainsaw/) | v0.2.15 | integration test runner |
 | [golangci-lint](https://golangci-lint.run/) | v2.11.4 | |
+| [promtool](https://prometheus.io/docs/prometheus/latest/command-line/promtool/) | v3.15.0 | validates `config/monitoring/rules.yaml`; installed from its release tarball, not `go install` (see the `PROMTOOL_VERSION` comment in the `Makefile`) |
 | Docker | — | container image build |
 
 Install the pinned tool versions with:
