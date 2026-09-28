@@ -103,7 +103,7 @@ CHAINSAW_FLAGS   := --parallel 1 --skip-delete --report-format JUNIT-TEST --repo
         test-rds test-secretsmanager test-sns test-sqs test-stepfunctions \
         test-version test-features test-observability \
         test-dyn-01 test-dyn-02 test-dyn-03 test-dyn \
-        test-obs-04 test-obs-05 test-obs-06-pending test-obs-06-activated test-obs-07 \
+        test-obs-04 test-obs-05 test-obs-06-pending test-obs-06-activated test-obs-07 test-obs-08 \
         test-organizations \
         test-s3advanced \
         test-chainsaw \
@@ -610,6 +610,10 @@ test-obs-07: ## Run metric-inventory-completeness and rules-validate Chainsaw su
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/observability/ctrl-obs-07/ $(CHAINSAW_FLAGS)
 
+test-obs-08: ## Run non-leader collector exposure Chainsaw suite (ctrl-obs-08 AC-19). Run last — relies on state from ctrl-obs-01..07.
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/observability/ctrl-obs-08/ $(CHAINSAW_FLAGS)
+
 test-dyn: ## Run dynamic CRD detection suites 01 → 02 → 03 in the required order.
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ctrl-dyn-01/ $(CHAINSAW_FLAGS)
@@ -655,6 +659,11 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 		tests/stepfunctions/ tests/version/ tests/waf/ \
 		tests/organizations/ \
 		$(CHAINSAW_FLAGS)
+	# ctrl-obs-08 (AC-19) runs last: it relies on KropathConfig/S3Config/
+	# PolicyDocument/namespace state already created by ctrl-obs-01..07 above
+	# to have a non-empty series for every §3 collector, rather than creating
+	# its own fixtures.
+	$(CHAINSAW) test tests/observability/ctrl-obs-08/ $(CHAINSAW_FLAGS)
 	$(MAKE) chainsaw-stop
 
 # ─── Tool installation ─────────────────────────────────────────────────────────

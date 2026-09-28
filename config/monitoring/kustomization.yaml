@@ -15,9 +15,12 @@
 # This kustomization is opt-in and is NOT referenced by any default deploy
 # (design §10.3). Apply it with `make deploy-monitoring`, which requires the
 # Prometheus Operator's PrometheusRule CRD to already be installed on the
-# target cluster. The dashboard ships as a plain file for the consumer's own
-# provisioning (e.g. a Grafana sidecar ConfigMap) and is intentionally not
-# listed here.
+# target cluster.
+#
+# The dashboard under dashboards/ is intentionally not listed here: it ships
+# as a plain file for the consumer's own Grafana provisioning (a sidecar
+# ConfigMap, a folder sync, etc.), not as a cluster object this kustomization
+# applies (spec §4.2).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
