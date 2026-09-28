@@ -91,7 +91,7 @@ CHAINSAW_FLAGS   := --parallel 1 --skip-delete --report-format JUNIT-TEST --repo
         test-rds test-secretsmanager test-sns test-sqs test-stepfunctions \
         test-version test-features test-observability \
         test-dyn-01 test-dyn-02 test-dyn-03 test-dyn \
-        test-obs-05 test-obs-06-pending test-obs-06-activated \
+        test-obs-04 test-obs-05 test-obs-06-pending test-obs-06-activated \
         test-organizations \
         test-s3advanced \
         test-chainsaw \
@@ -534,6 +534,10 @@ test-observability: ## Run observability metrics Chainsaw suites (ctrl-obs-01..0
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/observability/ctrl-obs-01/ tests/observability/ctrl-obs-02/ tests/observability/ctrl-obs-03/ $(CHAINSAW_FLAGS)
 
+test-obs-04: ## Run PolicyDocument observability metrics Chainsaw suite (ctrl-obs-04).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/observability/ctrl-obs-04/ $(CHAINSAW_FLAGS)
+
 test-dyn-01: ## Run dynamic CRD detection suite 01 — operator starts with ELBConfig CRD absent.
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ctrl-dyn-01/ $(CHAINSAW_FLAGS)
@@ -604,7 +608,7 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 		tests/kms/ tests/kropathconfig/ tests/label-operator/ tests/lambda/ tests/managedprometheus/ \
 		tests/memorydb/ tests/mq/ tests/msk/ tests/mwaa/ tests/networkfirewall/ \
 		tests/observability/ctrl-obs-01/ tests/observability/ctrl-obs-02/ tests/observability/ctrl-obs-03/ \
-		tests/observability/ctrl-obs-05/ \
+		tests/observability/ctrl-obs-04/ tests/observability/ctrl-obs-05/ \
 		tests/opensearch/ tests/pipes/ \
 		tests/policy/ tests/quicksight/ tests/ram/ tests/rds/ tests/recyclebin/ tests/route53/ tests/s3/ \
 		tests/s3advanced/ tests/sagemaker/ tests/secretsmanager/ tests/ses/ tests/sns/ tests/sqs/ tests/ssm/ \

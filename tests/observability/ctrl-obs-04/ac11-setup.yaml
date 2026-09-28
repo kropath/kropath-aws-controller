@@ -1,0 +1,156 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# AC-11: ac11-doc references an unbounded kind (NotAKropathKind). Nine more
+# documents each reference a distinct bogus kind -- all ten must bucket to
+# kind="other" on the ref metrics, adding no further kind label values.
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-doc
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: NotAKropathKind
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-1
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind1
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-2
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind2
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-3
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind3
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-4
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind4
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-5
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind5
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-6
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind6
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-7
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind7
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-8
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind8
+            name: ac11-missing
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: PolicyDocument
+metadata:
+  name: ac11-bogus-9
+  namespace: default
+spec:
+  statements:
+    - effect: Allow
+      actions: ["s3:GetObject"]
+      resources:
+        - ref:
+            kind: ObsBogusKind9
+            name: ac11-missing

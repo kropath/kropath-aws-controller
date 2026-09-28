@@ -1,0 +1,4 @@
+# HELP kropath_policydocument_documents Number of PolicyDocument objects currently in each Ready condition reason, sampled at scrape time.
+# TYPE kropath_policydocument_documents gauge
+kropath_policydocument_documents{reason="SidConflict"} 1
+kropath_policydocument_documents{reason="SourceNotReady"} 1
