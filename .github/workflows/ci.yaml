@@ -291,6 +291,17 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: make install-kind
 
+      # promtool cannot be `go install`ed -- its module carries a replace
+      # directive -- so it is taken from a prebuilt release rather than built
+      # by `go install`. See the PROMTOOL_VERSION comment in the Makefile.
+      # ctrl-obs-07's ac18-rules-validate step shells out to `make
+      # monitoring-verify` / `make monitoring-test`, so this job needs
+      # promtool on PATH just like the standalone `monitoring-verify` job
+      # does, even though Chainsaw itself never touches Prometheus.
+      - name: Install promtool
+        if: needs.changes.outputs.code == 'true'
+        run: make install-promtool
+
       # Chainsaw is the one tool taken as a prebuilt release rather than built
       # by `go install`, so its version has to be handed to the action as an
       # input. Reading it back out of the Makefile keeps the pin single-sourced;
