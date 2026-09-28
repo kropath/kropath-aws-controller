@@ -194,13 +194,6 @@ checks the build-info metrics.
 `docs/features.yaml` is a generated snapshot of the reconciler registry, and CI fails if it drifts
 from the code.
 
-### Known gaps
-
-#### PolicyDocument — test-suite phase count
-
-`CLAUDE.md` describes `tests/policy/` as "three phases (CRD validation, ref resolution, source
-merge)"; only `phase2-refs` and `phase3-merge` are present.
-
 ## Requirements
 
 | Tool | Version | Notes |

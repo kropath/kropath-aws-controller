@@ -366,9 +366,9 @@ test-kms: ## Run KMS cascade Chainsaw suites (ctrl-kms-01, ctrl-kms-02).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/kms/ctrl-kms-01/ tests/kms/ctrl-kms-02/ $(CHAINSAW_FLAGS)
 
-test-policy: ## Run policy document Chainsaw suites (phase2-refs + phase3-merge).
+test-policy: ## Run policy document Chainsaw suites (phase1-schema + phase2-refs + phase3-merge).
 	@mkdir -p $(REPORT_DIR)
-	$(CHAINSAW) test tests/policy/phase2-refs/ tests/policy/phase3-merge/ $(CHAINSAW_FLAGS)
+	$(CHAINSAW) test tests/policy/phase1-schema/ tests/policy/phase2-refs/ tests/policy/phase3-merge/ $(CHAINSAW_FLAGS)
 
 test-label-operator: ## Run label-operator Chainsaw suite (ctrl-label-op-01).
 	@mkdir -p $(REPORT_DIR)
