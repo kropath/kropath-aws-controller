@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.KinesisConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list KinesisConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "kinesisconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForKinesisConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.KinesisConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list KinesisConfig configs for KinesisConfig change")
+		util.RecordMapFuncListError(r.Log, "kinesisconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.KinesisConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list KinesisConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "kinesisconfig", "namespace", err)
 		return nil
 	}
 

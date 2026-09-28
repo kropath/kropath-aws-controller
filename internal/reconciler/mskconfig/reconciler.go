@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.MSKConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list MSKConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "mskconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForMSKConfigChange(ctx context.Context, obj client.
 
 	var list v1alpha1.MSKConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list MSKConfig configs for MSKConfig change")
+		util.RecordMapFuncListError(r.Log, "mskconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.MSKConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list MSKConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "mskconfig", "namespace", err)
 		return nil
 	}
 

@@ -217,7 +217,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.PipesConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list PipesConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "pipesconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -253,7 +253,7 @@ func (r *Reconciler) requestsForPipesConfigChange(ctx context.Context, obj clien
 
 	var list v1alpha1.PipesConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list PipesConfig configs for PipesConfig change")
+		util.RecordMapFuncListError(r.Log, "pipesconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -283,7 +283,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.PipesConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list PipesConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "pipesconfig", "namespace", err)
 		return nil
 	}
 

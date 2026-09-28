@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.Route53ConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list Route53Config configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "route53config", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForRoute53ConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.Route53ConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list Route53Config configs for Route53Config change")
+		util.RecordMapFuncListError(r.Log, "route53config", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.Route53ConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list Route53Config configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "route53config", "namespace", err)
 		return nil
 	}
 

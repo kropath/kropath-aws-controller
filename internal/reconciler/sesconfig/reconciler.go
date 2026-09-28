@@ -228,7 +228,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.SESConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list SESConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "sesconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -264,7 +264,7 @@ func (r *Reconciler) requestsForSESConfigChange(ctx context.Context, obj client.
 
 	var list v1alpha1.SESConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list SESConfig configs for SESConfig change")
+		util.RecordMapFuncListError(r.Log, "sesconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -294,7 +294,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.SESConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list SESConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "sesconfig", "namespace", err)
 		return nil
 	}
 

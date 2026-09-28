@@ -211,7 +211,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.DSQLConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list DSQLConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "dsqlconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -247,7 +247,7 @@ func (r *Reconciler) requestsForDSQLConfigChange(ctx context.Context, obj client
 
 	var list v1alpha1.DSQLConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list DSQLConfig configs for DSQLConfig change")
+		util.RecordMapFuncListError(r.Log, "dsqlconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -277,7 +277,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.DSQLConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list DSQLConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "dsqlconfig", "namespace", err)
 		return nil
 	}
 

@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.MWAAConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list MWAAConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "mwaaconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForMWAAConfigChange(ctx context.Context, obj client
 
 	var list v1alpha1.MWAAConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list MWAAConfig configs for MWAAConfig change")
+		util.RecordMapFuncListError(r.Log, "mwaaconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.MWAAConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list MWAAConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "mwaaconfig", "namespace", err)
 		return nil
 	}
 

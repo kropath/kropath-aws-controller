@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 type fakeRecorder struct {
@@ -174,5 +175,59 @@ func TestReconcileNotFoundIsNoop(t *testing.T) {
 	reconcile(t, r, "does-not-exist")
 	if len(rec.events) != 0 {
 		t.Fatalf("events = %+v, want none", rec.events)
+	}
+}
+
+// transitionCounterValue reads kropath_namespaceplacement_transitions_total
+// for the given "to" label straight from the shared registry --
+// internal/metrics registers its own counter and does not export it, so this
+// is the only black-box way to assert the increment from this package.
+func transitionCounterValue(t *testing.T, to string) float64 {
+	t.Helper()
+	families, err := ctrlmetrics.Registry.Gather()
+	if err != nil {
+		t.Fatalf("Gather: %v", err)
+	}
+	for _, mf := range families {
+		if mf.GetName() != "kropath_namespaceplacement_transitions_total" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, lp := range m.GetLabel() {
+				if lp.GetName() == "to" && lp.GetValue() == to {
+					return m.GetCounter().GetValue()
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// The counter shares the same prevStatus != newStatus guard as the Event
+// (spec §2.5), so it must fire exactly once on the first reconcile (a
+// transition into MissingAccountAnnotation) and not again on a second
+// reconcile that reaches the same verdict.
+func TestReconcileTransitionCounterFiresOnlyOnceOnTransition(t *testing.T) {
+	const reason = "MissingAccountAnnotation"
+	before := transitionCounterValue(t, reason)
+
+	r, c, _ := testReconciler(t, namespaceWithAnnotations("obs-transition-counter-ns", map[string]string{
+		util.GlobalConfigNamespaceAnnotation: "platform-config",
+		util.DefaultRegionAnnotation:         "ap-southeast-2",
+	}))
+	reconcile(t, r, "obs-transition-counter-ns")
+
+	afterFirst := transitionCounterValue(t, reason)
+	if delta := afterFirst - before; delta != 1 {
+		t.Fatalf("after first reconcile: %s delta = %v, want 1", reason, delta)
+	}
+
+	ns := getNamespace(t, c, "obs-transition-counter-ns")
+	r2, _, _ := testReconciler(t, ns)
+	reconcile(t, r2, "obs-transition-counter-ns")
+
+	afterSecond := transitionCounterValue(t, reason)
+	if delta := afterSecond - afterFirst; delta != 0 {
+		t.Fatalf("after second reconcile with unchanged verdict: %s delta = %v, want 0 (no new increment)", reason, delta)
 	}
 }

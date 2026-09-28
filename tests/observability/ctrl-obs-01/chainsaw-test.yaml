@@ -1,0 +1,131 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-01 — kropath_kropathconfigstatus_configs lifecycle (AC-1 .. AC-3):
+# the KRO-1104 regression, end to end: Unreferenced appears, clears once a
+# consumer resolves it as the global tier, and neither series retains a stale
+# non-zero value once both objects are deleted (spec §3.4, §6, design M-5).
+#
+# This suite runs inside `make test-chainsaw`'s single shared-cluster pass
+# alongside every cascade suite, so kropath_kropathconfigstatus_configs
+# already carries other suites' contributions by the time this runs -- an
+# absolute-value assertion ("the series equals 1") would be correct only in
+# isolation and flaky in the full run. Every assertion below is therefore a
+# *delta* against a baseline captured immediately before the mutating step,
+# which is exactly M-5's deletion property and holds regardless of what else
+# is on the cluster.
+#
+# Requires the controller running on :18080 (METRICS_PORT), started by
+# `make chainsaw-start chainsaw-wait` before this suite runs.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-01
+spec:
+  steps:
+    # AC-1: a KropathConfig no <Family>Config resolves is Unreferenced.
+    - name: ac-1-unreferenced-appears
+      try:
+        - script:
+            timeout: 90s
+            content: |
+              set -e
+              metric_value() {
+                curl -fsS http://127.0.0.1:18080/metrics | grep -F "$1" | awk '{print $NF}'
+              }
+              before=$(metric_value 'kropath_kropathconfigstatus_configs{reason="Unreferenced"}')
+              before=${before:-0}
+
+              kubectl apply -f ac01-setup.yaml
+
+              for i in $(seq 1 25); do
+                after=$(metric_value 'kropath_kropathconfigstatus_configs{reason="Unreferenced"}')
+                after=${after:-0}
+                delta=$((after - before))
+                if [ "$delta" -eq 1 ]; then
+                  echo "PASS: Unreferenced delta=$delta (before=$before after=$after)"
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "FAIL: Unreferenced delta not 1 (before=$before after=$after)"
+              exit 1
+
+    # AC-2: an S3Config resolving obs01-unref-ns's KropathConfig as the global
+    # tier clears Unreferenced and publishes GlobalTier. kropathconfigstatus
+    # does not watch S3Config, so this transition only surfaces on its own
+    # requeueInterval (15s) -- poll long enough to cover that.
+    - name: ac-2-unreferenced-clears-globaltier-appears
+      try:
+        - script:
+            timeout: 90s
+            content: |
+              set -e
+              metric_value() {
+                curl -fsS http://127.0.0.1:18080/metrics | grep -F "$1" | awk '{print $NF}'
+              }
+              unref_before=$(metric_value 'kropath_kropathconfigstatus_configs{reason="Unreferenced"}')
+              unref_before=${unref_before:-0}
+              global_before=$(metric_value 'kropath_kropathconfigstatus_configs{reason="GlobalTier"}')
+              global_before=${global_before:-0}
+
+              kubectl apply -f ac02-setup.yaml
+
+              for i in $(seq 1 40); do
+                unref_after=$(metric_value 'kropath_kropathconfigstatus_configs{reason="Unreferenced"}')
+                unref_after=${unref_after:-0}
+                global_after=$(metric_value 'kropath_kropathconfigstatus_configs{reason="GlobalTier"}')
+                global_after=${global_after:-0}
+                unref_delta=$((unref_after - unref_before))
+                global_delta=$((global_after - global_before))
+                if [ "$unref_delta" -eq -1 ] && [ "$global_delta" -eq 1 ]; then
+                  echo "PASS: Unreferenced delta=$unref_delta, GlobalTier delta=$global_delta"
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "FAIL: Unreferenced delta=$unref_delta (want -1), GlobalTier delta=$global_delta (want 1)"
+              exit 1
+
+    # AC-3: deleting both objects leaves no stale non-zero GlobalTier sample --
+    # the collector re-lists at every scrape, so deletion is handled by
+    # construction (design §6, M-5) rather than by a finalizer decrementing a
+    # counter.
+    - name: ac-3-deleted-objects-leave-no-stale-series
+      try:
+        - script:
+            timeout: 90s
+            content: |
+              set -e
+              metric_value() {
+                curl -fsS http://127.0.0.1:18080/metrics | grep -F "$1" | awk '{print $NF}'
+              }
+              before=$(metric_value 'kropath_kropathconfigstatus_configs{reason="GlobalTier"}')
+              before=${before:-0}
+
+              kubectl delete s3config general-policy -n obs01-app-ns --ignore-not-found=true
+              kubectl delete kropathconfig baseline -n obs01-unref-ns --ignore-not-found=true
+
+              for i in $(seq 1 25); do
+                after=$(metric_value 'kropath_kropathconfigstatus_configs{reason="GlobalTier"}')
+                after=${after:-0}
+                delta=$((after - before))
+                if [ "$delta" -eq -1 ]; then
+                  echo "PASS: GlobalTier delta=$delta (before=$before after=$after)"
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "FAIL: GlobalTier delta not -1 (before=$before after=$after)"
+              exit 1

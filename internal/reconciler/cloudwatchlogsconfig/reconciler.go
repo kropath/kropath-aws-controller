@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.CloudWatchLogsConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list CloudWatchLogsConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "cloudwatchlogsconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForCloudWatchLogsConfigChange(ctx context.Context, 
 
 	var list v1alpha1.CloudWatchLogsConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list CloudWatchLogsConfig configs for CloudWatchLogsConfig change")
+		util.RecordMapFuncListError(r.Log, "cloudwatchlogsconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.CloudWatchLogsConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list CloudWatchLogsConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "cloudwatchlogsconfig", "namespace", err)
 		return nil
 	}
 

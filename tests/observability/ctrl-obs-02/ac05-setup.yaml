@@ -1,0 +1,9 @@
+# AC-5: ac04-ns gains services.k8s.aws/default-region, resolving placement.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ac04-ns
+  annotations:
+    aws.kropath.run/global-config-namespace: ac04-ns
+    services.k8s.aws/owner-account-id: "123456789012"
+    services.k8s.aws/default-region: "us-east-1"

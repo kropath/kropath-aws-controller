@@ -1,0 +1,44 @@
+# AC-7: obs03-app-ns has valid placement and designates obs03-global-ns as its
+# global-config-namespace. A global S3Config named identically to the local
+# one ("ac07-cfg") makes the profile lookup resolve directly -- ProfileFound.
+#
+# obs03-global-ns designates itself as its own global-config-namespace (the
+# same self-referencing pattern as tests/s3) so it is a resource namespace,
+# not governance-only -- otherwise its own S3Config would itself show up as a
+# withheld{family="s3config"} series and break AC-7's "adds nothing to the
+# withheld total" assertion.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: obs03-global-ns
+  annotations:
+    aws.kropath.run/global-config-namespace: obs03-global-ns
+    services.k8s.aws/owner-account-id: "123456789012"
+    services.k8s.aws/default-region: "us-east-1"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: obs03-app-ns
+  annotations:
+    aws.kropath.run/global-config-namespace: obs03-global-ns
+    services.k8s.aws/owner-account-id: "123456789012"
+    services.k8s.aws/default-region: "us-east-1"
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: S3Config
+metadata:
+  name: ac07-cfg
+  namespace: obs03-global-ns
+spec:
+  mandatory: {}
+  defaults: {}
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: S3Config
+metadata:
+  name: ac07-cfg
+  namespace: obs03-app-ns
+spec:
+  mandatory: {}
+  defaults: {}

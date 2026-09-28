@@ -210,7 +210,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.APIGatewayConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list ApiGateway configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "apigatewayconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -246,7 +246,7 @@ func (r *Reconciler) requestsForApiGatewayConfigChange(ctx context.Context, obj 
 
 	var list v1alpha1.APIGatewayConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list ApiGateway configs for ApiGatewayConfig change")
+		util.RecordMapFuncListError(r.Log, "apigatewayconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -276,7 +276,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.APIGatewayConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list ApiGateway configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "apigatewayconfig", "namespace", err)
 		return nil
 	}
 

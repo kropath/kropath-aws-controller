@@ -252,7 +252,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.SSMConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list SSMConfig for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "ssmconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -288,7 +288,7 @@ func (r *Reconciler) requestsForSSMConfigChange(ctx context.Context, obj client.
 
 	var list v1alpha1.SSMConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list SSMConfig for SSMConfig change")
+		util.RecordMapFuncListError(r.Log, "ssmconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -318,7 +318,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.SSMConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list SSMConfig for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "ssmconfig", "namespace", err)
 		return nil
 	}
 

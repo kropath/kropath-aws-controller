@@ -89,7 +89,7 @@ CHAINSAW_FLAGS   := --parallel 1 --skip-delete --report-format JUNIT-TEST --repo
         test-apigatewayv2 test-autoscaling test-cwl test-dynamodb test-ec2 \
         test-ecr test-ecs test-efs test-eks test-elasticache test-eventbridge test-bedrock \
         test-rds test-secretsmanager test-sns test-sqs test-stepfunctions \
-        test-version test-features \
+        test-version test-features test-observability \
         test-dyn-01 test-dyn-02 test-dyn-03 test-dyn \
         test-obs-05 test-obs-06-pending test-obs-06-activated \
         test-organizations \
@@ -530,6 +530,10 @@ test-features: ## Run /features endpoint Chainsaw suite (ctrl-features-01).
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/features/ctrl-features-01/ $(CHAINSAW_FLAGS)
 
+test-observability: ## Run observability metrics Chainsaw suites (ctrl-obs-01..03).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/observability/ctrl-obs-01/ tests/observability/ctrl-obs-02/ tests/observability/ctrl-obs-03/ $(CHAINSAW_FLAGS)
+
 test-dyn-01: ## Run dynamic CRD detection suite 01 — operator starts with ELBConfig CRD absent.
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ctrl-dyn-01/ $(CHAINSAW_FLAGS)
@@ -598,7 +602,9 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 		tests/ecr/ tests/ecrpublic/ tests/ecs/ tests/efs/ tests/eks/ tests/elasticache/ tests/elb/ \
 		tests/emr/ tests/eventbridge/ tests/features/ tests/glue/ tests/iam/ tests/keyspaces/ tests/kinesis/ \
 		tests/kms/ tests/kropathconfig/ tests/label-operator/ tests/lambda/ tests/managedprometheus/ \
-		tests/memorydb/ tests/mq/ tests/msk/ tests/mwaa/ tests/networkfirewall/ tests/observability/ctrl-obs-05/ \
+		tests/memorydb/ tests/mq/ tests/msk/ tests/mwaa/ tests/networkfirewall/ \
+		tests/observability/ctrl-obs-01/ tests/observability/ctrl-obs-02/ tests/observability/ctrl-obs-03/ \
+		tests/observability/ctrl-obs-05/ \
 		tests/opensearch/ tests/pipes/ \
 		tests/policy/ tests/quicksight/ tests/ram/ tests/rds/ tests/recyclebin/ tests/route53/ tests/s3/ \
 		tests/s3advanced/ tests/sagemaker/ tests/secretsmanager/ tests/ses/ tests/sns/ tests/sqs/ tests/ssm/ \

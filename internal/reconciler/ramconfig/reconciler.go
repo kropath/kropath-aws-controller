@@ -237,7 +237,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.RAMConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list RAMConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "ramconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -273,7 +273,7 @@ func (r *Reconciler) requestsForRAMConfigChange(ctx context.Context, obj client.
 
 	var list v1alpha1.RAMConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list RAMConfig configs for RAMConfig change")
+		util.RecordMapFuncListError(r.Log, "ramconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -303,7 +303,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.RAMConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list RAMConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "ramconfig", "namespace", err)
 		return nil
 	}
 

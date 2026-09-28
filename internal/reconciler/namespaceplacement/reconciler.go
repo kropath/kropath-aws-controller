@@ -28,10 +28,11 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"github.com/kropath/kropath-controller/internal/metrics"
 	"github.com/kropath/kropath-controller/internal/reconciler/util"
 	corev1 "k8s.io/api/core/v1"
-	corev1apply "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	corev1apply "k8s.io/client-go/applyconfigurations/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -97,9 +98,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Events fire only on a verdict transition -- a namespace stuck in the same
-	// failure must not produce an Event every resync (spec §6.2).
-	if prevStatus != newStatus && r.Recorder != nil {
-		r.Recorder.Event(&ns, eventType, eventReason, eventMessage)
+	// failure must not produce an Event every resync (spec §6.2). The counter
+	// shares this guard so it and the Event never drift apart (spec §2.5).
+	if prevStatus != newStatus {
+		metrics.NamespacePlacementTransition(newStatus)
+		if r.Recorder != nil {
+			r.Recorder.Event(&ns, eventType, eventReason, eventMessage)
+		}
 	}
 
 	return ctrl.Result{}, nil

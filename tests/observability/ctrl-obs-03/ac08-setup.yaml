@@ -1,0 +1,20 @@
+# AC-8: obs03-app-ns's ac08-missing-profile requests a global profile of the
+# same name, which does not exist in obs03-global-ns, but the default
+# "general-policy" profile does -- ProfileFallthrough.
+apiVersion: aws.kropath.run/v1alpha1
+kind: S3Config
+metadata:
+  name: general-policy
+  namespace: obs03-global-ns
+spec:
+  mandatory: {}
+  defaults: {}
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: S3Config
+metadata:
+  name: ac08-missing-profile
+  namespace: obs03-app-ns
+spec:
+  mandatory: {}
+  defaults: {}

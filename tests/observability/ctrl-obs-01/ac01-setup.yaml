@@ -1,0 +1,15 @@
+# AC-1: KropathConfig/baseline in obs01-unref-ns, a namespace no
+# <Family>Config resolves as either tier -- Unreferenced (KRO-1104).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: obs01-unref-ns
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: KropathConfig
+metadata:
+  name: baseline
+  namespace: obs01-unref-ns
+spec:
+  mandatory: {}
+  defaults: {}

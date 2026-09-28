@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.DynamoDBConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list DynamoDBConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "dynamodbconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForDynamoDBConfigChange(ctx context.Context, obj cl
 
 	var list v1alpha1.DynamoDBConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list DynamoDBConfig configs for DynamoDBConfig change")
+		util.RecordMapFuncListError(r.Log, "dynamodbconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.DynamoDBConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list DynamoDBConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "dynamodbconfig", "namespace", err)
 		return nil
 	}
 

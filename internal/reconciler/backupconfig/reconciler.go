@@ -210,7 +210,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.BackupConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list BackupConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "backupconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -246,7 +246,7 @@ func (r *Reconciler) requestsForBackupConfigChange(ctx context.Context, obj clie
 
 	var list v1alpha1.BackupConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list BackupConfig configs for BackupConfig change")
+		util.RecordMapFuncListError(r.Log, "backupconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -276,7 +276,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.BackupConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list BackupConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "backupconfig", "namespace", err)
 		return nil
 	}
 

@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.ManagedPrometheusConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list ManagedPrometheusConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "managedprometheusconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForManagedPrometheusConfigChange(ctx context.Contex
 
 	var list v1alpha1.ManagedPrometheusConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list ManagedPrometheusConfig configs for ManagedPrometheusConfig change")
+		util.RecordMapFuncListError(r.Log, "managedprometheusconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.ManagedPrometheusConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list ManagedPrometheusConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "managedprometheusconfig", "namespace", err)
 		return nil
 	}
 

@@ -209,7 +209,7 @@ func (r *Reconciler) requestsForKropathConfigChange(ctx context.Context, obj cli
 
 	var list v1alpha1.CodeArtifactConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list CodeArtifactConfig configs for KropathConfig change")
+		util.RecordMapFuncListError(r.Log, "codeartifactconfig", "kropathconfig", err)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (r *Reconciler) requestsForCodeArtifactConfigChange(ctx context.Context, ob
 
 	var list v1alpha1.CodeArtifactConfigList
 	if err := r.Client.List(ctx, &list); err != nil {
-		r.Log.Error(err, "unable to list CodeArtifactConfig configs for CodeArtifactConfig change")
+		util.RecordMapFuncListError(r.Log, "codeartifactconfig", "familyconfig", err)
 		return nil
 	}
 
@@ -275,7 +275,7 @@ func (r *Reconciler) requestsForNamespaceChange(ctx context.Context, obj client.
 
 	var list v1alpha1.CodeArtifactConfigList
 	if err := r.Client.List(ctx, &list, client.InNamespace(ns.Name)); err != nil {
-		r.Log.Error(err, "unable to list CodeArtifactConfig configs for namespace change", "namespace", ns.Name)
+		util.RecordMapFuncListError(r.Log, "codeartifactconfig", "namespace", err)
 		return nil
 	}
 

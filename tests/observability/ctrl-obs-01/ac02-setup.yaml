@@ -1,0 +1,21 @@
+# AC-2: obs01-app-ns designates obs01-unref-ns as its global-config-namespace.
+# An S3Config living in obs01-app-ns makes obs01-unref-ns's KropathConfig/baseline
+# resolve as the global tier -- the KRO-1104 regression: the Unreferenced series
+# must clear and GlobalTier must appear.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: obs01-app-ns
+  annotations:
+    aws.kropath.run/global-config-namespace: obs01-unref-ns
+    services.k8s.aws/owner-account-id: "123456789012"
+    services.k8s.aws/default-region: "us-east-1"
+---
+apiVersion: aws.kropath.run/v1alpha1
+kind: S3Config
+metadata:
+  name: general-policy
+  namespace: obs01-app-ns
+spec:
+  mandatory: {}
+  defaults: {}
