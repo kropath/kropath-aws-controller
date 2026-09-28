@@ -6,6 +6,7 @@ package monitoring
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -133,6 +134,18 @@ func TestCheckExpr_UndecomposableRegexFails(t *testing.T) {
 	}
 	if len(violations) != 1 {
 		t.Fatalf("got %d violations, want 1 for an undecomposable regex: %v", len(violations), violations)
+	}
+}
+
+// TestViolation_String verifies the human-readable form used when
+// TestLabelValueCheck_ShippedArtifactsPass reports a real violation via t.Errorf.
+func TestViolation_String(t *testing.T) {
+	v := Violation{Source: "config/monitoring/rules.yaml: alert Foo", Metric: "kropath_x", Label: "reason", Value: "Bogus"}
+	got := v.String()
+	for _, want := range []string{"config/monitoring/rules.yaml: alert Foo", "kropath_x", "reason", "Bogus"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("String() = %q, want it to contain %q", got, want)
+		}
 	}
 }
 
