@@ -177,7 +177,7 @@ Neither reads or writes `effectiveConfig`; both are separate features with their
 
 | Feature | Reconciler | CR(s) watched | Output | Suite | Steps | AWS integration |
 |---|---|---|---|---|---|---|
-| PolicyDocument | `PolicyDocument` | `PolicyDocument`, `KropathConfig` | `status.resolvedDocumentJSON` | `policy/phase2-refs`, `policy/phase3-merge` | 11 | ⏳ Pending |
+| PolicyDocument | `PolicyDocument` | `PolicyDocument`, `KropathConfig` | `status.resolvedDocumentJSON` | `policy/phase1-schema`, `policy/phase2-refs`, `policy/phase3-merge` | 18 | ⏳ Pending |
 | Label injection | `LabelOperator` | every kind under `aws.`/`gcp.`/`azure.kropath.run` | `metadata.labels[<provider>.kropath.run/resource-name]` | `label-operator/ctrl-label-op-01` | 9 | ⏳ Pending |
 
 Both are implemented and covered. The label-operator reconciler keeps the
