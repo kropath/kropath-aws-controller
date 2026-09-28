@@ -30,6 +30,16 @@ CHAINSAW_VERSION    := v0.2.15
 GOSEC_VERSION       := v2.29.0
 GOVULNCHECK_VERSION := v1.8.0
 GOIMPORTS_VERSION   := v0.50.0
+# The real prometheus/prometheus product release, i.e. the GitHub release tag
+# and the "3.x" reported by `promtool --version`. This repo's go.mod pins the
+# same commit as github.com/prometheus/prometheus v0.315.0 -- prometheus/prometheus
+# dual-tags every release as v0.<315>.0 (go-modules-compatible, major stuck at
+# 0) and v3.<15>.0 (the real product version); `go install` of ./cmd/promtool
+# fails because that module's go.mod carries a replace directive, so promtool
+# is installed from the prebuilt release tarball instead (install-promtool),
+# matching the print-tool-versions comment below about tools taken as
+# prebuilt releases.
+PROMTOOL_VERSION    := v3.15.0
 
 # ─── Paths ─────────────────────────────────────────────────────────────────────
 BINARY           := bin/kropath-operator
@@ -58,6 +68,7 @@ METRICS_PORT     ?= 18080
 TEST_NAMESPACES  := kro-system payments-prod events-prod network-prod registry-prod data-platform
 CHAINSAW         ?= chainsaw
 GOLANGCI         ?= golangci-lint
+PROMTOOL         ?= promtool
 
 # Git ref of kropath-aws whose CRDs are the authority for crds-verify.
 KROPATH_AWS_REF  ?= main
@@ -82,6 +93,7 @@ CHAINSAW_FLAGS   := --parallel 1 --skip-delete --report-format JUNIT-TEST --repo
 
 .PHONY: all build test test-cover vet fmt lint \
         features-gen features-verify crds-verify \
+        monitoring-gen monitoring-verify monitoring-test deploy-monitoring \
         docker-build docker-push \
         kind-up kind-down \
         chainsaw-setup chainsaw-start chainsaw-wait chainsaw-stop \
@@ -91,12 +103,12 @@ CHAINSAW_FLAGS   := --parallel 1 --skip-delete --report-format JUNIT-TEST --repo
         test-rds test-secretsmanager test-sns test-sqs test-stepfunctions \
         test-version test-features test-observability \
         test-dyn-01 test-dyn-02 test-dyn-03 test-dyn \
-        test-obs-04 test-obs-05 test-obs-06-pending test-obs-06-activated \
+        test-obs-04 test-obs-05 test-obs-06-pending test-obs-06-activated test-obs-07 \
         test-organizations \
         test-s3advanced \
         test-chainsaw \
         install-tools install-kind install-chainsaw install-golangci-lint \
-        install-goimports install-gosec install-govulncheck \
+        install-goimports install-gosec install-govulncheck install-promtool \
         print-tool-versions gosec vulncheck security \
         help default
 
@@ -174,6 +186,30 @@ crds-verify: ## CI gate: fail if a watched Kind is missing or mis-cased vs kropa
 	  done; \
 	fi; \
 	KROPATH_AWS_CRDS_DIR="$$dir" go test ./internal/features/ -run 'TestWatchedKindsMatchUpstreamCRDs|TestSpecDefaultDrift|TestConfigKindSetDrift' -v
+
+# ─── Monitoring (config/monitoring/) ───────────────────────────────────────────
+#
+# rules.yaml is canonical (design §10.2); prometheusrule.yaml is generated from
+# it and must never be hand-edited. config/monitoring/ is its own kustomization,
+# not part of any default deploy (design §10.3) -- see deploy-monitoring below.
+
+monitoring-gen: ## Regenerate config/monitoring/prometheusrule.yaml from rules.yaml.
+	go run ./cmd/gen-monitoring
+
+monitoring-verify: ## CI gate: fail if prometheusrule.yaml is stale, rules.yaml fails promtool, or a label literal is unknown.
+	@command -v $(PROMTOOL) >/dev/null 2>&1 || \
+		{ echo "ERROR: promtool not found. Run: make install-promtool"; exit 1; }
+	go run ./cmd/gen-monitoring --check
+	$(PROMTOOL) check rules config/monitoring/rules.yaml
+	go test ./internal/monitoring/...
+
+monitoring-test: ## Run promtool's rules.yaml unit tests (config/monitoring/rules_test.yaml).
+	@command -v $(PROMTOOL) >/dev/null 2>&1 || \
+		{ echo "ERROR: promtool not found. Run: make install-promtool"; exit 1; }
+	cd config/monitoring && $(PROMTOOL) test rules rules_test.yaml
+
+deploy-monitoring: ## Opt-in: apply config/monitoring (requires the Prometheus Operator CRDs).
+	kubectl apply -k config/monitoring
 
 # ─── Container image ────────────────────────────────────────────────────────────
 
@@ -570,6 +606,10 @@ test-obs-06-activated: ## Run registry activation-deletes-series Chainsaw suite 
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/observability/ctrl-obs-06-activated/ $(CHAINSAW_FLAGS)
 
+test-obs-07: ## Run metric-inventory-completeness and rules-validate Chainsaw suite (ctrl-obs-07 AC-17, AC-18).
+	@mkdir -p $(REPORT_DIR)
+	$(CHAINSAW) test tests/observability/ctrl-obs-07/ $(CHAINSAW_FLAGS)
+
 test-dyn: ## Run dynamic CRD detection suites 01 → 02 → 03 in the required order.
 	@mkdir -p $(REPORT_DIR)
 	$(CHAINSAW) test tests/ctrl-dyn-01/ $(CHAINSAW_FLAGS)
@@ -608,7 +648,7 @@ test-chainsaw: chainsaw-stop chainsaw-start chainsaw-wait ## Stop any stale cont
 		tests/kms/ tests/kropathconfig/ tests/label-operator/ tests/lambda/ tests/managedprometheus/ \
 		tests/memorydb/ tests/mq/ tests/msk/ tests/mwaa/ tests/networkfirewall/ \
 		tests/observability/ctrl-obs-01/ tests/observability/ctrl-obs-02/ tests/observability/ctrl-obs-03/ \
-		tests/observability/ctrl-obs-04/ tests/observability/ctrl-obs-05/ \
+		tests/observability/ctrl-obs-04/ tests/observability/ctrl-obs-05/ tests/observability/ctrl-obs-07/ \
 		tests/opensearch/ tests/pipes/ \
 		tests/policy/ tests/quicksight/ tests/ram/ tests/rds/ tests/recyclebin/ tests/route53/ tests/s3/ \
 		tests/s3advanced/ tests/sagemaker/ tests/secretsmanager/ tests/ses/ tests/sns/ tests/sqs/ tests/ssm/ \
@@ -640,8 +680,35 @@ install-gosec: ## Install the pinned gosec binary.
 install-govulncheck: ## Install the pinned govulncheck binary.
 	go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 
+# promtool is the one tool `go install` cannot build directly: its module
+# (github.com/prometheus/prometheus) carries a `replace` directive, which Go
+# refuses to honor for a module that is not the main module in the build
+# (see the PROMTOOL_VERSION comment above). Installed from the prebuilt
+# release tarball instead.
+install-promtool: ## Install the pinned promtool binary from its GitHub release tarball.
+	@set -eu; \
+	os=$$(uname -s | tr '[:upper:]' '[:lower:]'); \
+	arch=$$(uname -m); \
+	case "$$arch" in \
+	  x86_64) arch=amd64 ;; \
+	  aarch64|arm64) arch=arm64 ;; \
+	  *) echo "ERROR: unsupported architecture $$arch for promtool"; exit 1 ;; \
+	esac; \
+	ver="$(PROMTOOL_VERSION)"; ver="$${ver#v}"; \
+	pkg="prometheus-$${ver}.$${os}-$${arch}"; \
+	tmpdir=$$(mktemp -d); \
+	trap 'rm -rf "$$tmpdir"' EXIT; \
+	url="https://github.com/prometheus/prometheus/releases/download/$(PROMTOOL_VERSION)/$${pkg}.tar.gz"; \
+	echo "Downloading $$url"; \
+	curl -fsSL "$$url" -o "$$tmpdir/prometheus.tar.gz"; \
+	tar -xzf "$$tmpdir/prometheus.tar.gz" -C "$$tmpdir" "$${pkg}/promtool"; \
+	bindir="$$(go env GOPATH)/bin"; \
+	mkdir -p "$$bindir"; \
+	mv "$$tmpdir/$${pkg}/promtool" "$$bindir/promtool"; \
+	echo "Installed promtool $(PROMTOOL_VERSION) to $$bindir/promtool"
+
 install-tools: install-kind install-chainsaw install-golangci-lint install-goimports \
-	install-gosec install-govulncheck ## Install every pinned tool locally.
+	install-gosec install-govulncheck install-promtool ## Install every pinned tool locally.
 
 # Emitted as KEY=value lines so a CI step can redirect it straight into
 # $$GITHUB_OUTPUT. Used for tools installed from a prebuilt release rather than
@@ -654,6 +721,7 @@ print-tool-versions: ## Print the pinned tool versions as KEY=value lines.
 	@echo "GOIMPORTS_VERSION=$(GOIMPORTS_VERSION)"
 	@echo "GOSEC_VERSION=$(GOSEC_VERSION)"
 	@echo "GOVULNCHECK_VERSION=$(GOVULNCHECK_VERSION)"
+	@echo "PROMTOOL_VERSION=$(PROMTOOL_VERSION)"
 
 # ─── Security scans ────────────────────────────────────────────────────────────
 # Run only when implementation is complete. Do not run during active development.

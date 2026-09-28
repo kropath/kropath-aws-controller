@@ -20,7 +20,7 @@
 - Merges Statement arrays from `spec.sources` (left-ordered concatenation); detects Sid conflicts
 - Serializes resolved document to `status.resolvedDocumentJSON`; sets `Ready`, `SidConflict`, `SourceNotReady` conditions
 - Raw `spec.documentJSON` path: validate JSON and pass through; not mergeable as a source
-- Exposes Prometheus metrics: `kropath_poldoc_reconcile_total`, `kropath_poldoc_unresolved_refs`, etc.
+- Exposes Prometheus metrics: `kropath_policydocument_documents`, `kropath_policydocument_unresolved_refs`, `kropath_policydocument_ref_resolutions_total`, `kropath_policydocument_sid_conflicts_total` — see [`docs/metrics.md`](docs/metrics.md). `poldoc` was never a shipped prefix; do not reintroduce it.
 - Test suite at `tests/policy/` (three phases: CRD validation, ref resolution, source merge)
 
 ### Reconciler 3 — KropathConfigStatus (KRO-1121)
@@ -43,6 +43,7 @@
 - Single Deployment, single RBAC manifest, single `/metrics` endpoint (port 8080)
 - Health probes: `/healthz` port 8081 (manager alive), `/readyz` port 8081 (leader lease + watches established)
 - `/features` endpoint on `:8080` — returns version, git commit, and the live reconciler list as JSON
+- **`config/monitoring/`** — alerting rules and a dashboard for every metric this controller exposes. `rules.yaml` is canonical and is what `promtool check rules` validates directly; `prometheusrule.yaml` is **generated** from it by `make monitoring-gen` (`cmd/gen-monitoring`) and must never be hand-edited — `make monitoring-verify` (CI-gated) fails on drift. It is its own kustomization, opt-in via `make deploy-monitoring`, and is not part of any default deploy. See [`docs/metrics.md`](docs/metrics.md) for every metric, its labels, and its alert.
 - **No per-feature flags.** Every reconciler in `internal/features.All` runs unconditionally. To add a reconciler: create its package under `internal/reconciler/<pkg>/`, add an entry to `features.All`, and run `make features-gen`. Missing registrations fail `TestRegistryCoversAllPackages`.
 - **Every watched kind must have a CRD in `tests/fixtures/crds/` or `tests/fixtures/crds-optional/`.** A reconciler whose CRD is missing from the test cluster takes down the **whole manager** two minutes after startup, surfacing as unrelated Chainsaw suites timing out. `TestEveryReconcilerHasCRDFixture` catches this at unit-test time by scanning both directories. See `docs/frequent-chainsaw-errors.md` §1.
   - **`tests/fixtures/crds/`** — the default. `make chainsaw-setup` applies everything here and derives its `kubectl wait` list from this directory only.

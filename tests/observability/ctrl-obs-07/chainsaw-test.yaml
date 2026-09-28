@@ -1,0 +1,212 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ctrl-obs-07 — metric-inventory completeness and rules validation (AC-17,
+# AC-18). Spec: kropath-core docs/specs/controller-observability-metrics.md
+# §7 (AC-17, AC-18), §10.2. Design: §10.2, §10.2.1.
+#
+# Requires the controller running on :18080 (METRICS_PORT in Makefile),
+# started by `make chainsaw-start chainsaw-wait` before this suite runs, and
+# `promtool`/`go` on PATH for the AC-18 step (`make install-promtool`).
+#
+# AC-17 — "no kropath_* name appears that is absent from §1" is checked
+# bidirectionally and unconditionally: every kropath_* metric name this suite
+# observes on /metrics must be a member of docs/metrics.md's inventory (the
+# 19 metrics from spec §1, or one of the 6 pre-existing metrics in
+# internal/registry/metrics.go and internal/version/metrics.go that predate
+# this feature and are documented separately). That half never flakes.
+#
+# The "each metric name is present" half is checked for 16 of the 19 §1
+# metrics only. A Prometheus CounterVec/GaugeVec with no label combination
+# ever touched emits *no* series at all — not even a zero one (verified
+# against client_golang directly: an untouched CounterVec produces no HELP/
+# TYPE lines whatsoever). Three metrics are excluded from this half for
+# reasons specific to where this suite runs in `make test-chainsaw`'s single
+# shared, --skip-delete cluster pass:
+#
+#   - kropath_registry_reconciler_pending_since_timestamp_seconds: M-17
+#     deletes a package's child series the moment its reconciler activates.
+#     test-chainsaw's fixed FIFO ordering (ctrl-dyn-01 → ctrl-obs-06-pending
+#     → ctrl-dyn-02 → ctrl-obs-06-activated) runs and *completes* the
+#     pending→active cycle for elbconfig well before this suite's place in
+#     the "remaining suites" batch, so its one-ever-touched child is already
+#     deleted by the time this runs. Its presence during the pending window
+#     is ctrl-obs-06-pending's job (AC-15); its absence-on-activation is
+#     ctrl-obs-06-activated's job (AC-16). Asserting presence here would
+#     directly contradict the M-17 property those suites prove.
+#   - kropath_cascade_mapfunc_errors_total and kropath_metrics_collect_errors_total:
+#     both require an induced List() failure to ever be touched (AC-20,
+#     ctrl-obs-08 — a different task's scope), which nothing in a successful
+#     `make test-chainsaw` run triggers. This mirrors the spec's own AC-19
+#     carve-out (§7): where full live coverage isn't feasible, the weaker
+#     Chainsaw scenario is documented explicitly rather than left to flake.
+#
+# Unit-test coverage for all three lives in internal/metrics's own collector
+# and helper tests (metrics_cascade_test.go, metrics_collector_test.go,
+# metrics_registry_test.go) and in this repo's TestClosedLabelValues_NonEmpty
+# / TestOutcomeValues_* — the declarations and instrumentation call sites are
+# proven correct there; only their *live* presence, which depends on an event
+# this suite does not induce, is out of scope here.
+#
+# kropath_policydocument_unresolved_refs is a scrape-time collector
+# (unresolved_refs_collector.go): it emits a series only for {kind, field}
+# buckets that currently have at least one unresolved ref among live
+# PolicyDocument objects; with none, it emits no series at all, same as an
+# untouched CounterVec. This suite used to assume ctrl-obs-04's ac9-ac12
+# fixtures (which include permanently-unresolvable refs) would already be in
+# the cluster by the time this ran. That assumption does not hold: both
+# suites are in test-chainsaw's "remaining suites — order-independent" batch,
+# and a CI run was observed where ctrl-obs-07 executed before ctrl-obs-04 (no
+# PolicyDocument existed yet), failing this exact check. The
+# ac17-seed-unresolved-ref step below makes this suite self-contained for
+# that metric instead of depending on another suite's incidental leftover
+# state.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ctrl-obs-07
+spec:
+  description: "Metric-inventory completeness (AC-17) and rules validation (AC-18)"
+  steps:
+    - name: ac17-seed-unresolved-ref
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: ac17-unresolved-ref
+                namespace: default
+              spec:
+                statements:
+                  - effect: Allow
+                    actions: ["s3:GetObject"]
+                    resources:
+                      - ref:
+                          kind: AWSS3Bucket
+                          name: ac17-missing-bucket
+        - assert:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: ac17-unresolved-ref
+                namespace: default
+              status:
+                conditions:
+                  - type: Ready
+                    status: "False"
+                  - type: SourceNotReady
+                    status: "True"
+                  - type: SidConflict
+                    status: "False"
+
+    - name: ac17-metric-inventory-complete
+      try:
+        - script:
+            timeout: 30s
+            # bash: the array syntax and <<< here-string below are not POSIX
+            # sh (chainsaw's default) — dash rejects them outright.
+            shell: bash
+            content: |
+              set -e
+              metrics=$(curl -fsS http://127.0.0.1:18080/metrics)
+
+              # 16 of the 19 spec §1 metrics — reliably touched by the time this
+              # suite runs in test-chainsaw's shared, --skip-delete cluster pass.
+              # kropath_policydocument_unresolved_refs is seeded by this suite's
+              # own ac17-seed-unresolved-ref step, not by another suite's state.
+              # See the suite header for the 3 excluded and why.
+              expected_present=(
+                kropath_placement_resolutions_total
+                kropath_config_profile_resolutions_total
+                kropath_policydocument_documents
+                kropath_policydocument_unresolved_refs
+                kropath_policydocument_ref_resolutions_total
+                kropath_policydocument_sid_conflicts_total
+                kropath_cascade_effective_config_withheld
+                kropath_labeloperator_watched_kinds
+                kropath_labeloperator_group_discovery_total
+                kropath_labeloperator_patches_total
+                kropath_kropathconfigstatus_configs
+                kropath_kropathconfigstatus_family_kinds_unavailable
+                kropath_namespaceplacement_namespaces
+                kropath_namespaceplacement_transitions_total
+                kropath_registry_crd_watch_events_total
+                kropath_registry_optional_kinds_attached
+              )
+
+              # Every kropath_* name this cluster may legitimately expose: the
+              # 16 above, the 3 excluded-from-presence-check §1 metrics (still
+              # legitimate if they DO appear), and the 6 pre-existing metrics
+              # in internal/registry/metrics.go and internal/version/metrics.go
+              # that predate this feature (docs/metrics.md documents all 25).
+              allowed_all=(
+                "${expected_present[@]}"
+                kropath_cascade_mapfunc_errors_total
+                kropath_metrics_collect_errors_total
+                kropath_registry_reconciler_pending_since_timestamp_seconds
+                kropath_build_info
+                kropath_feature_enabled
+                kropath_reconciler_active
+                kropath_reconciler_missing_kinds
+                kropath_reconciler_activations_total
+                kropath_crd_watch_errors_total
+              )
+
+              fail=0
+
+              for m in "${expected_present[@]}"; do
+                if ! echo "$metrics" | grep -q "^# TYPE $m "; then
+                  echo "FAIL: expected metric $m not present on /metrics"
+                  fail=1
+                fi
+              done
+
+              found_names=$(echo "$metrics" | grep -oE '^# TYPE kropath_[a-zA-Z0-9_]+ ' | awk '{print $3}' | sort -u)
+              while read -r name; do
+                [ -z "$name" ] && continue
+                known=0
+                for a in "${allowed_all[@]}"; do
+                  if [ "$a" = "$name" ]; then known=1; break; fi
+                done
+                if [ "$known" -eq 0 ]; then
+                  echo "FAIL: unexpected metric $name on /metrics — not in the docs/metrics.md inventory"
+                  fail=1
+                fi
+              done <<< "$found_names"
+
+              if [ "$fail" -ne 0 ]; then
+                exit 1
+              fi
+              echo "PASS: all expected kropath_* metrics present; no unexpected kropath_* names found"
+
+    - name: ac18-rules-validate
+      try:
+        - script:
+            timeout: 60s
+            content: |
+              set -e
+              root=$(git rev-parse --show-toplevel)
+              cd "$root"
+              export PATH="$(go env GOPATH)/bin:$PATH"
+
+              command -v promtool >/dev/null 2>&1 || {
+                echo "FAIL: promtool not installed (run: make install-promtool)"
+                exit 1
+              }
+
+              make monitoring-verify
+              make monitoring-test
+              echo "PASS: rules.yaml validates, prometheusrule.yaml is not stale, and the §10.2.1 label-value check passes"

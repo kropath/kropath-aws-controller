@@ -155,6 +155,42 @@ jobs:
           KROPATH_AWS_COMPANION_REFS: ""
         run: make crds-verify
 
+  monitoring-verify:
+    name: Monitoring rules drift gate
+    runs-on: ubuntu-latest
+    needs: changes
+    steps:
+      - name: Checkout
+        if: needs.changes.outputs.code == 'true'
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        if: needs.changes.outputs.code == 'true'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # promtool cannot be `go install`ed -- its module carries a replace
+      # directive -- so it is the second tool (after Chainsaw) taken from a
+      # prebuilt release rather than built by `go install`. See the
+      # PROMTOOL_VERSION comment in the Makefile.
+      - name: Install promtool
+        if: needs.changes.outputs.code == 'true'
+        run: make install-promtool
+
+      - name: Check config/monitoring/prometheusrule.yaml is up to date, rules.yaml validates, and every label literal resolves
+        if: needs.changes.outputs.code == 'true'
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          make monitoring-verify
+
+      - name: Run promtool rule unit tests
+        if: needs.changes.outputs.code == 'true'
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          make monitoring-test
+
   security:
     name: Security scan
     runs-on: ubuntu-latest
@@ -182,7 +218,7 @@ jobs:
   image:
     name: Build image
     runs-on: ubuntu-latest
-    needs: [changes, lint, unit, features-verify, security]
+    needs: [changes, lint, unit, features-verify, monitoring-verify, security]
     permissions:
       contents: read
       packages: write
@@ -254,6 +290,17 @@ jobs:
       - name: Install kind
         if: needs.changes.outputs.code == 'true'
         run: make install-kind
+
+      # promtool cannot be `go install`ed -- its module carries a replace
+      # directive -- so it is taken from a prebuilt release rather than built
+      # by `go install`. See the PROMTOOL_VERSION comment in the Makefile.
+      # ctrl-obs-07's ac18-rules-validate step shells out to `make
+      # monitoring-verify` / `make monitoring-test`, so this job needs
+      # promtool on PATH just like the standalone `monitoring-verify` job
+      # does, even though Chainsaw itself never touches Prometheus.
+      - name: Install promtool
+        if: needs.changes.outputs.code == 'true'
+        run: make install-promtool
 
       # Chainsaw is the one tool taken as a prebuilt release rather than built
       # by `go install`, so its version has to be handed to the action as an

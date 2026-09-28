@@ -1,0 +1,106 @@
+{
+  "title": "kropath-controller",
+  "description": "One dashboard, not a suite (design §10.1). Panels exist to satisfy the §10.2 bidirectional metric-name check: every metric named in spec §1 with no dedicated alert gets a panel here instead. Every gauge query uses `max by`, per design M-15.",
+  "tags": ["kropath", "kropath-controller"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Config profile fallthrough by family",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (family) (rate(kropath_config_profile_resolutions_total{reason=\"ProfileFallthrough\"}[15m]))",
+          "legendFormat": "{{family}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Unresolved policy refs",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "max by (kind, field) (kropath_policydocument_unresolved_refs)",
+          "legendFormat": "{{kind}} / {{field}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Sid conflict rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(kropath_policydocument_sid_conflicts_total[15m]))",
+          "legendFormat": "sid conflicts"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Label patch outcomes",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (group, outcome) (rate(kropath_labeloperator_patches_total[15m]))",
+          "legendFormat": "{{group}} / {{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Group discovery outcomes",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (group, outcome) (rate(kropath_labeloperator_group_discovery_total[15m]))",
+          "legendFormat": "{{group}} / {{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Placement verdicts",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "max by (status) (kropath_namespaceplacement_namespaces)",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Placement transitions",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (to) (rate(kropath_namespaceplacement_transitions_total[1h]))",
+          "legendFormat": "{{to}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "CRD watch events",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(kropath_registry_crd_watch_events_total[15m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Optional kinds attached",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "max by (package) (kropath_registry_optional_kinds_attached)",
+          "legendFormat": "{{package}}"
+        }
+      ]
+    }
+  ]
+}

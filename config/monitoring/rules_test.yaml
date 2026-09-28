@@ -1,0 +1,114 @@
+# Copyright 2026 kropath Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# `promtool test rules` unit tests for the two rules.yaml expressions whose
+# logic is not obvious (spec §8, design §13):
+#
+#   1. KropathPlacementResolutionFailing's `reason!~"PlacementResolved|
+#      ResolvedFromNamespace"` exclusion — success reasons must never fire the
+#      alert, no matter how fast they accumulate.
+#   2. KropathLabelInjectionOff's `absent(...) or ... == 0` shape — both the
+#      "series never registered" (absent) and "registered with zero watched
+#      kinds" (== 0) paths must independently fire, but a positive count must
+#      not.
+#
+# Run via `make monitoring-test` (wraps `promtool test rules`).
+rule_files:
+  - rules.yaml
+
+evaluation_interval: 1m
+
+tests:
+  # KropathPlacementResolutionFailing — a non-excluded reason accumulating at
+  # a sustained rate fires once both the 15m rate window and the 15m `for`
+  # duration have elapsed.
+  - interval: 1m
+    input_series:
+      - series: 'kropath_placement_resolutions_total{reason="MissingRegionAnnotation"}'
+        values: "0+1x40"
+    alert_rule_test:
+      - eval_time: 31m
+        alertname: KropathPlacementResolutionFailing
+        exp_alerts:
+          - exp_labels:
+              reason: MissingRegionAnnotation
+              severity: warning
+              component: kropath-controller
+            exp_annotations:
+              summary: "Placement is rejecting namespaces (MissingRegionAnnotation)."
+              description: "A sustained failure rate usually means a bad onboarding batch."
+
+  # The two excluded reasons — PlacementResolved and ResolvedFromNamespace —
+  # accumulate at the same sustained rate as the case above but must never
+  # fire the alert, at any eval time.
+  - interval: 1m
+    input_series:
+      - series: 'kropath_placement_resolutions_total{reason="PlacementResolved"}'
+        values: "0+1x40"
+      - series: 'kropath_placement_resolutions_total{reason="ResolvedFromNamespace"}'
+        values: "0+1x40"
+    alert_rule_test:
+      - eval_time: 31m
+        alertname: KropathPlacementResolutionFailing
+        exp_alerts: []
+
+  # KropathLabelInjectionOff, absent() branch — no
+  # kropath_labeloperator_watched_kinds series exists at all (e.g. discovery
+  # never ran for any group), so absent() is 1 throughout and the alert fires
+  # with no group label, since absent() invents no label the expression does
+  # not already constrain.
+  - interval: 1m
+    input_series: []
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: KropathLabelInjectionOff
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              component: kropath-controller
+            exp_annotations:
+              summary: "No label-injection controller is registered for ."
+              description: >-
+                A transient discovery failure at startup disables labelling for the whole group
+                until the pod restarts.
+
+  # KropathLabelInjectionOff, == 0 branch — the series is registered (so
+  # absent() is empty) but reports zero watched kinds for the whole window.
+  - interval: 1m
+    input_series:
+      - series: 'kropath_labeloperator_watched_kinds{group="gcp.kropath.run"}'
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: KropathLabelInjectionOff
+        exp_alerts:
+          - exp_labels:
+              group: gcp.kropath.run
+              severity: critical
+              component: kropath-controller
+            exp_annotations:
+              summary: "No label-injection controller is registered for gcp.kropath.run."
+              description: >-
+                A transient discovery failure at startup disables labelling for the whole group
+                until the pod restarts.
+
+  # A positive watched-kinds count never fires the alert.
+  - interval: 1m
+    input_series:
+      - series: 'kropath_labeloperator_watched_kinds{group="aws.kropath.run"}'
+        values: "5x10"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: KropathLabelInjectionOff
+        exp_alerts: []
