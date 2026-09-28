@@ -69,6 +69,9 @@ spec:
       try:
         - script:
             timeout: 30s
+            # bash: the array syntax and <<< here-string below are not POSIX
+            # sh (chainsaw's default) — dash rejects them outright.
+            shell: bash
             content: |
               set -e
               metrics=$(curl -fsS http://127.0.0.1:18080/metrics)
