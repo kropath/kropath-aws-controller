@@ -208,22 +208,6 @@ drifts from the code (the **Feature registry drift gate** job).
 `CLAUDE.md` describes `tests/policy/` as "three phases (CRD validation, ref resolution, source
 merge)"; only `phase2-refs` and `phase3-merge` are present.
 
-#### Observability
-
-Every reconciler now exposes outcome-based Prometheus metrics — see
-[`docs/metrics.md`](docs/metrics.md) for the full list, and
-[`config/monitoring/rules.yaml`](config/monitoring/rules.yaml) for the alerting rules generated
-from them. This was not always true: `internal/version/metrics.go`'s build-info and
-feature-enabled gauges were the *only* registered metrics before `internal/registry/metrics.go`
-landed, and PolicyDocument, config cascade, label injection, KropathConfigStatus,
-NamespacePlacement, and the registry/dynamic-CRD-detection path had none of their own. If you are
-reading an older revision of this file, do not trust a "no metrics exist" claim without checking
-`docs/metrics.md` first.
-
-Generic per-reconciler reconcile counts come from controller-runtime for free
-(`controller_runtime_reconcile_total{controller="<name>"}`) and need no additional
-instrumentation in this repo.
-
 ## Requirements
 
 | Tool | Version | Notes |
