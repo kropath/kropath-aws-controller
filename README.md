@@ -181,18 +181,10 @@ Neither reads or writes `effectiveConfig`; both are separate features with their
 | PolicyDocument | `PolicyDocument` | `PolicyDocument`, `KropathConfig` | `status.resolvedDocumentJSON` | `policy/phase2-refs`, `policy/phase3-merge` | 11 | ⏳ Pending |
 | Label injection | `LabelOperator` | every kind under `aws.`/`gcp.`/`azure.kropath.run` | `metadata.labels[<provider>.kropath.run/resource-name]` | `label-operator/ctrl-label-op-01` | 9 | ⏳ Pending |
 
-Both are implemented and covered. The label-operator suite has a step for AC-1 … AC-10 of the
-[spec](https://github.com/kropath/kropath-core/blob/main/docs/specs/controller-label-operator.md)
-(label added for AWS config, GCP config and non-config kinds; wrong value corrected; correct
-value is a no-op; resource still admitted while the operator is down; retroactive labelling on
-recovery; core `kropath.run` group excluded; provider-scoped `KropathConfig` under
-`aws.kropath.run` included). AC-10 — a CRD registered under these API groups *after* the operator
-starts still gets labelled without a restart — is covered by `tests/ctrl-dyn-05`: the CRD watcher
-(`internal/registry/watcher.go`) detects a new provider-group CRD becoming served and calls
-`labeloperator`'s wildcard `AddKindWatch` (`internal/registry/entries.go`), which registers a
-fresh runtime controller for that kind. The PolicyDocument suites
-cover ref resolution (`phase2-refs`) and source merging with `Sid` conflict detection
-(`phase3-merge`). See [Known gaps](#known-gaps) for the deviations from spec that remain.
+Both are implemented and covered. The label-operator reconciler ensures that CRDs registered under
+the provider groups (`aws.kropath.run`, `gcp.kropath.run`, `azure.kropath.run`) are correctly
+labelled even when they are discovered after the operator starts. The PolicyDocument reconciler
+resolves policy statement references and detects conflicts in merged policies.
 
 Two further suites cover the binary rather than a reconciler: `features/ctrl-features-01` (5
 steps) exercises the `/features` endpoint and `version/ctrl-version-01` (2 steps) the build-info
