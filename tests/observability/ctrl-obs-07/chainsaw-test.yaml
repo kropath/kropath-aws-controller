@@ -58,6 +58,20 @@
 # / TestOutcomeValues_* — the declarations and instrumentation call sites are
 # proven correct there; only their *live* presence, which depends on an event
 # this suite does not induce, is out of scope here.
+#
+# kropath_policydocument_unresolved_refs is a scrape-time collector
+# (unresolved_refs_collector.go): it emits a series only for {kind, field}
+# buckets that currently have at least one unresolved ref among live
+# PolicyDocument objects; with none, it emits no series at all, same as an
+# untouched CounterVec. This suite used to assume ctrl-obs-04's ac9-ac12
+# fixtures (which include permanently-unresolvable refs) would already be in
+# the cluster by the time this ran. That assumption does not hold: both
+# suites are in test-chainsaw's "remaining suites — order-independent" batch,
+# and a CI run was observed where ctrl-obs-07 executed before ctrl-obs-04 (no
+# PolicyDocument existed yet), failing this exact check. The
+# ac17-seed-unresolved-ref step below makes this suite self-contained for
+# that metric instead of depending on another suite's incidental leftover
+# state.
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -65,6 +79,39 @@ metadata:
 spec:
   description: "Metric-inventory completeness (AC-17) and rules validation (AC-18)"
   steps:
+    - name: ac17-seed-unresolved-ref
+      try:
+        - apply:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: ac17-unresolved-ref
+                namespace: default
+              spec:
+                statements:
+                  - effect: Allow
+                    actions: ["s3:GetObject"]
+                    resources:
+                      - ref:
+                          kind: AWSS3Bucket
+                          name: ac17-missing-bucket
+        - assert:
+            resource:
+              apiVersion: aws.kropath.run/v1alpha1
+              kind: PolicyDocument
+              metadata:
+                name: ac17-unresolved-ref
+                namespace: default
+              status:
+                conditions:
+                  - type: Ready
+                    status: "False"
+                  - type: SourceNotReady
+                    status: "True"
+                  - type: SidConflict
+                    status: "False"
+
     - name: ac17-metric-inventory-complete
       try:
         - script:
@@ -78,6 +125,8 @@ spec:
 
               # 16 of the 19 spec §1 metrics — reliably touched by the time this
               # suite runs in test-chainsaw's shared, --skip-delete cluster pass.
+              # kropath_policydocument_unresolved_refs is seeded by this suite's
+              # own ac17-seed-unresolved-ref step, not by another suite's state.
               # See the suite header for the 3 excluded and why.
               expected_present=(
                 kropath_placement_resolutions_total
