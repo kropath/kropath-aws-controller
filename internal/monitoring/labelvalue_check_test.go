@@ -39,7 +39,7 @@ func repoRoot(t *testing.T) string {
 func TestLabelValueCheck_ShippedArtifactsPass(t *testing.T) {
 	root := repoRoot(t)
 	rulesPath := filepath.Join(root, "config", "monitoring", "rules.yaml")
-	dashboardPath := filepath.Join(root, "config", "monitoring", "dashboards", "kropath-controller.json")
+	dashboardPath := filepath.Join(root, "config", "monitoring", "dashboards", "kropath-aws-controller.json")
 
 	violations, err := CheckAll(rulesPath, dashboardPath)
 	if err != nil {

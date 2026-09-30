@@ -23,13 +23,13 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kropath/kropath-controller/internal/monitoring"
+	"github.com/kropath/kropath-aws-controller/internal/monitoring"
 )
 
 const (
 	rulesPath = "config/monitoring/rules.yaml"
 	outPath   = "config/monitoring/prometheusrule.yaml"
-	ruleName  = "kropath-controller"
+	ruleName  = "kropath-aws-controller"
 )
 
 // prometheusRule is the minimal PrometheusRule CR shape this generator emits:

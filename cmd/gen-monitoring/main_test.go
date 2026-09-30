@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/monitoring"
+	"github.com/kropath/kropath-aws-controller/internal/monitoring"
 )
 
 func sampleGroups() []monitoring.RuleGroup {
 	return []monitoring.RuleGroup{
 		{
-			Name: "kropath-controller.governance",
+			Name: "kropath-aws-controller.governance",
 			Rules: []monitoring.Rule{
 				{
 					Alert: "KropathConfigUnreferenced",
@@ -22,7 +22,7 @@ func sampleGroups() []monitoring.RuleGroup {
 					For:   "10m",
 					Labels: monitoring.RuleLabels{
 						Severity:  "critical",
-						Component: "kropath-controller",
+						Component: "kropath-aws-controller",
 					},
 					Annotations: monitoring.RuleAnnotations{
 						Summary: "A KropathConfig is resolved by no <Family>Config.",
@@ -61,9 +61,9 @@ func TestGenerate_pinnedMetadata(t *testing.T) {
 	for _, want := range []string{
 		"apiVersion: monitoring.coreos.com/v1",
 		"kind: PrometheusRule",
-		"name: kropath-controller",
-		"app.kubernetes.io/name: kropath-controller",
-		"name: kropath-controller.governance",
+		"name: kropath-aws-controller",
+		"app.kubernetes.io/name: kropath-aws-controller",
+		"name: kropath-aws-controller.governance",
 		"alert: KropathConfigUnreferenced",
 	} {
 		if !strings.Contains(out, want) {

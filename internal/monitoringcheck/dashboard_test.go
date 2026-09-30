@@ -35,10 +35,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/reconciler/util"
+	"github.com/kropath/kropath-aws-controller/internal/reconciler/util"
 )
 
-const dashboardPath = "../../config/monitoring/dashboards/kropath-controller.json"
+const dashboardPath = "../../config/monitoring/dashboards/kropath-aws-controller.json"
 
 type dashboardTarget struct {
 	Expr string `json:"expr"`

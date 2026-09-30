@@ -6,7 +6,7 @@ package version
 import (
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/features"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 )

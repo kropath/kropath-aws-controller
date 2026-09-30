@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/kropath/kropath-controller/api/v1alpha1"
-	"github.com/kropath/kropath-controller/internal/cascade"
-	"github.com/kropath/kropath-controller/internal/reconciler/util"
+	"github.com/kropath/kropath-aws-controller/api/v1alpha1"
+	"github.com/kropath/kropath-aws-controller/internal/cascade"
+	"github.com/kropath/kropath-aws-controller/internal/reconciler/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

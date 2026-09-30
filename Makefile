@@ -45,24 +45,24 @@ PROMTOOL_VERSION    := v3.15.0
 BINARY           := bin/kropath-operator
 MAIN_PKG         := ./cmd/manager
 IMAGE_REGISTRY   := ghcr.io/kropath
-IMAGE_NAME       := kropath-controller
+IMAGE_NAME       := kropath-aws-controller
 IMAGE_TAG        ?= $(shell git rev-parse --short=7 HEAD)
 REPORT_DIR       := test-results
-CONTROLLER_LOG   := /tmp/kropath-controller/controller.log
-CONTROLLER_PID   := /tmp/kropath-controller/pid
+CONTROLLER_LOG   := /tmp/kropath-aws-controller/controller.log
+CONTROLLER_PID   := /tmp/kropath-aws-controller/pid
 
 # ─── Version stamping ──────────────────────────────────────────────────────────
 VERSION    ?= dev
 GIT_COMMIT := $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo none)
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-MODULE     := github.com/kropath/kropath-controller
+MODULE     := github.com/kropath/kropath-aws-controller
 LDFLAGS    := -s -w \
     -X $(MODULE)/internal/version.Version=$(VERSION) \
     -X $(MODULE)/internal/version.GitCommit=$(GIT_COMMIT) \
     -X "$(MODULE)/internal/version.BuildDate=$(BUILD_DATE)"
 
 # ─── Test config ───────────────────────────────────────────────────────────────
-KIND_CLUSTER     := kropath-controller-test
+KIND_CLUSTER     := kropath-aws-controller-test
 HEALTH_PORT      ?= 18081
 METRICS_PORT     ?= 18080
 TEST_NAMESPACES  := kro-system payments-prod events-prod network-prod registry-prod data-platform
@@ -317,7 +317,7 @@ chainsaw-install-optional-crd: ## Install a single optional CRD and wait for Est
 		$$(awk '/^  name: [a-z0-9.]+$$/ {print "crd/" $$2}' $(CRD_FILE) | sort -u)
 
 chainsaw-start: chainsaw-setup ## Build, set up CRDs, and start the operator in the background.
-	@mkdir -p /tmp/kropath-controller
+	@mkdir -p /tmp/kropath-aws-controller
 	@if [ -f $(CONTROLLER_PID) ] && kill -0 "$$(cat $(CONTROLLER_PID))" 2>/dev/null; then \
 		echo "Controller already running (PID $$(cat $(CONTROLLER_PID)))."; \
 	else \

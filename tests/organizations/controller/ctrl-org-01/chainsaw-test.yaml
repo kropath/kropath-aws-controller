@@ -25,7 +25,7 @@
 #   Each AC step owns a distinct resource name (ac<N>-org-policy). The controller
 #   pairs a namespaced OrganizationsConfig with its kro-system KropathConfig by
 #   name, so a per-step name is a complete isolation boundary. No inter-step cleanup
-#   needed. See kropath-controller/docs/frequent-chainsaw-errors.md §1.
+#   needed. See kropath-aws-controller/docs/frequent-chainsaw-errors.md §1.
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:

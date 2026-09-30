@@ -17,7 +17,7 @@ package cascade_test
 import (
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/cascade"
+	"github.com/kropath/kropath-aws-controller/internal/cascade"
 )
 
 // emptySSMKropath returns a zero-value SSMKropathSection (no fields set).

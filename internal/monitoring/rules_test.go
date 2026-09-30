@@ -41,7 +41,7 @@ func TestLoadRulesFile_ParsesGroupsAndRules(t *testing.T) {
 			t.Errorf("group %q has no rules", g.Name)
 		}
 		for _, r := range g.Rules {
-			if r.Labels.Severity == "" || r.Labels.Component != "kropath-controller" {
+			if r.Labels.Severity == "" || r.Labels.Component != "kropath-aws-controller" {
 				t.Errorf("rule %q missing required labels: %+v", r.Alert, r.Labels)
 			}
 		}

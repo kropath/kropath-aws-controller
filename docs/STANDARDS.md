@@ -1,4 +1,4 @@
-# Standards binding kropath-controller
+# Standards binding kropath-aws-controller
 
 Scope note: this file carries only the standards with a counterpart in this repo's code or in a
 contract this repo publishes. Standards for authoring kro RGDs — required child-resource wiring,
@@ -12,7 +12,7 @@ reference.
 
 ## Where this repo sits
 
-**kropath** (kro + golden path) is a multi-cloud golden path platform. `kropath-controller` is the
+**kropath** (kro + golden path) is a multi-cloud golden path platform. `kropath-aws-controller` is the
 Go controller: it pre-merges the governance config hierarchy and writes `status.effectiveConfig`
 onto namespaced ResourceConfig CRs, so that each kro RGD needs exactly one lookup instead of four.
 

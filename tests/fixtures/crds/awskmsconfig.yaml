@@ -215,7 +215,7 @@ spec:
                 effectiveConfig:
                   type: object
                   description: >-
-                    Pre-merged governance config written by kropath-controller. RGDs read
+                    Pre-merged governance config written by kropath-aws-controller. RGDs read
                     exclusively from this field via a single resources.get() call.
                   properties:
                     mandatory:

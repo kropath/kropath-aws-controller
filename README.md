@@ -1,11 +1,11 @@
-# kropath-controller
+# kropath-aws-controller
 
-[![CI](https://github.com/kropath/kropath-controller/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/kropath/kropath-controller/actions/workflows/ci.yaml)
-[![Release](https://github.com/kropath/kropath-controller/actions/workflows/release.yaml/badge.svg)](https://github.com/kropath/kropath-controller/actions/workflows/release.yaml)
+[![CI](https://github.com/kropath/kropath-aws-controller/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/kropath/kropath-aws-controller/actions/workflows/ci.yaml)
+[![Release](https://github.com/kropath/kropath-aws-controller/actions/workflows/release.yaml/badge.svg)](https://github.com/kropath/kropath-aws-controller/actions/workflows/release.yaml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Go controller for [kropath](https://github.com/kropath) (kro + golden path), a multi-cloud golden
-path platform. `kropath-controller` is a multi-reconciler `kropath-operator` binary built on a
+path platform. `kropath-aws-controller` is a multi-reconciler `kropath-operator` binary built on a
 single `controller-runtime` Manager — one Reconciler struct per feature.
 
 It is the **config-resolution half** of kropath: it watches the governance CRs a platform team
@@ -30,7 +30,7 @@ that object through one `externalRef` lookup per RGD and project it onto ACK res
 
 ## How it works
 
-kropath-controller ships **three independent features**. They share a deployment, a `/metrics`
+kropath-aws-controller ships **three independent features**. They share a deployment, a `/metrics`
 endpoint, and a leader election lease — but not a code path. Each has its own reconcile loop,
 its own inputs, and its own output field.
 
@@ -278,7 +278,7 @@ Prints the same JSON as `GET /features` and exits — no kubeconfig or cluster c
 Useful for inspecting an image before deploying it:
 
 ```bash
-docker run --rm ghcr.io/kropath/kropath-controller:v0.1.0 features
+docker run --rm ghcr.io/kropath/kropath-aws-controller:v0.1.0 features
 ```
 
 or locally:
@@ -373,7 +373,7 @@ Two consequences worth knowing:
 - The path check fails open: a missing or all-zero base SHA (new branch, force push) runs the
   full suite rather than assuming docs-only.
 
-On push to `main`, the image build publishes to `ghcr.io/kropath/kropath-controller` — see
+On push to `main`, the image build publishes to `ghcr.io/kropath/kropath-aws-controller` — see
 [Image tags](#image-tags) for the full tag matrix.
 
 `.github/workflows/pr-title.yaml` is a separate workflow so that it carries no path filter of its

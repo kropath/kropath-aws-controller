@@ -5,7 +5,7 @@
 
 ## Purpose
 
-kropath-controller currently has no way to produce a container image. This adds a
+kropath-aws-controller currently has no way to produce a container image. This adds a
 Dockerfile, a local `make` workflow for building the image, and a CI job that
 validates the build on every PR and pushes to GitHub Container Registry (ghcr.io)
 on merges to `main`.
@@ -34,7 +34,7 @@ New pins alongside the existing version-pin block:
 
 ```
 IMAGE_REGISTRY := ghcr.io/kropath
-IMAGE_NAME     := kropath-controller
+IMAGE_NAME     := kropath-aws-controller
 IMAGE_TAG      ?= $(shell git rev-parse --short HEAD)
 ```
 
@@ -56,8 +56,8 @@ job; runs in parallel with it, not blocking on it):
 - **On push to `main`**: `docker/login-action` against `ghcr.io` using the
   built-in `GITHUB_TOKEN` (no new secrets required), then
   `docker/build-push-action` with `push: true`, tagging
-  `ghcr.io/kropath/kropath-controller:latest` and
-  `ghcr.io/kropath/kropath-controller:sha-<short-sha>`.
+  `ghcr.io/kropath/kropath-aws-controller:latest` and
+  `ghcr.io/kropath/kropath-aws-controller:sha-<short-sha>`.
 
 ## Out of Scope
 

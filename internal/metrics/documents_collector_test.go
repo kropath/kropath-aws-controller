@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kropath/kropath-controller/api/v1alpha1"
+	"github.com/kropath/kropath-aws-controller/api/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

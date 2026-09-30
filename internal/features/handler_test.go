@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/features"
 )
 
 var testReconcilers = []features.Reconciler{

@@ -3,19 +3,19 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-    name: kropath-controller
+    name: kropath-aws-controller
     labels:
-        app.kubernetes.io/name: kropath-controller
+        app.kubernetes.io/name: kropath-aws-controller
 spec:
     groups:
-        - name: kropath-controller.governance
+        - name: kropath-aws-controller.governance
           rules:
             - alert: KropathConfigUnreferenced
               expr: max (kropath_kropathconfigstatus_configs{reason="Unreferenced"}) > 0
               for: 10m
               labels:
                 severity: critical
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: A KropathConfig is resolved by no <Family>Config.
                 description: '{{ $value }} KropathConfig object(s) have been Unreferenced for 10m. Tenant resources governed by them receive no effective config. This is the KRO-1104 failure mode.'
@@ -24,7 +24,7 @@ spec:
               for: 15m
               labels:
                 severity: warning
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: Consumer counts are understated; the Unreferenced gauge cannot be trusted.
                 description: '{{ $value }} <Family>Config CRD(s) are absent, so a correctly placed KropathConfig may be reported Unreferenced.'
@@ -33,11 +33,11 @@ spec:
               for: 10m
               labels:
                 severity: critical
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: '{{ $labels.family }} publishes no effectiveConfig ({{ $labels.reason }}).'
                 description: RGDs reading status.effectiveConfig for {{ $labels.family }} see an empty document and will fail in CEL far from this cause.
-        - name: kropath-controller.placement
+        - name: kropath-aws-controller.placement
           rules:
             - alert: KropathPlacementResolutionFailing
               expr: |-
@@ -46,18 +46,18 @@ spec:
               for: 15m
               labels:
                 severity: warning
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: Placement is rejecting namespaces ({{ $labels.reason }}).
                 description: A sustained failure rate usually means a bad onboarding batch.
-        - name: kropath-controller.policydocument
+        - name: kropath-aws-controller.policydocument
           rules:
             - alert: KropathPolicyDocumentsNotReady
               expr: max by (reason) (kropath_policydocument_documents{reason!="DocumentResolved"}) > 0
               for: 15m
               labels:
                 severity: warning
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: PolicyDocuments stuck on {{ $labels.reason }}.
             - alert: KropathPolicyRefCRDAbsent
@@ -65,11 +65,11 @@ spec:
               for: 10m
               labels:
                 severity: warning
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: PolicyDocuments reference {{ $labels.kind }}, whose CRD is not installed.
                 description: Distinct from waiting on an ARN — install the CRD. kind="other" means a kind kropath does not watch at all.
-        - name: kropath-controller.labelinjection
+        - name: kropath-aws-controller.labelinjection
           rules:
             - alert: KropathLabelInjectionOff
               expr: |-
@@ -78,40 +78,40 @@ spec:
               for: 5m
               labels:
                 severity: critical
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: No label-injection controller is registered for {{ $labels.group }}.
                 description: A transient discovery failure at startup disables labelling for the whole group until the pod restarts.
-        - name: kropath-controller.cascade
+        - name: kropath-aws-controller.cascade
           rules:
             - alert: KropathCascadeChangeEventsDropped
               expr: sum by (family) (rate(kropath_cascade_mapfunc_errors_total[5m])) > 0
               for: 10m
               labels:
                 severity: warning
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: '{{ $labels.family }} is dropping batches of change events.'
                 description: A config edit may never propagate, with nothing else to see.
-        - name: kropath-controller.registry
+        - name: kropath-aws-controller.registry
           rules:
             - alert: KropathReconcilerPendingTooLong
               expr: time() - min by (package) (kropath_registry_reconciler_pending_since_timestamp_seconds) > 3600
               for: 5m
               labels:
                 severity: warning
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: '{{ $labels.package }} has been pending over an hour.'
                 description: 'min, not max: the value is a per-process observation, so max lets one restarted replica resolve this while the CRD is still missing (design M-15 exception, A.6). An absent series means nothing is pending, so no absent() guard is needed.'
-        - name: kropath-controller.meta
+        - name: kropath-aws-controller.meta
           rules:
             - alert: KropathMetricsCollectorFailing
               expr: sum by (collector) (rate(kropath_metrics_collect_errors_total[10m])) > 0
               for: 10m
               labels:
                 severity: warning
-                component: kropath-controller
+                component: kropath-aws-controller
               annotations:
                 summary: Collector {{ $labels.collector }} cannot list; its series are absent.
                 description: An absent series is indistinguishable from "no objects in a bad state" — the exact silent success this feature exists to remove.

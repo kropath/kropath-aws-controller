@@ -13,7 +13,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kropath/kropath-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/features"
 )
 
 // awsKropathGroup is the API group this gate is scoped to. Non-AWS groups (e.g.

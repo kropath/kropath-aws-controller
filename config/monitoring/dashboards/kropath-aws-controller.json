@@ -1,8 +1,8 @@
 {
-  "title": "kropath-controller",
-  "uid": "kropath-controller",
+  "title": "kropath-aws-controller",
+  "uid": "kropath-aws-controller",
   "description": "Panels for the four kropath_* metrics no alert rule in config/monitoring/rules.yaml references, plus the surrounding context needed to read them (spec docs/specs/controller-observability-metrics.md §4.1). Not part of any default deploy -- provisioned by the consumer (design §10.3).",
-  "tags": ["kropath-controller"],
+  "tags": ["kropath-aws-controller"],
   "timezone": "utc",
   "schemaVersion": 39,
   "version": 1,

@@ -17,7 +17,7 @@
 # aws-pipes-01-pipesconfig.md's Acceptance Criteria table (AC-1 through AC-8) covers
 # only CRD-level x-kubernetes-validations and CR-inspection scenarios (tested in
 # kropath-aws); it has no entry for the effectiveConfig cascade merge that its own
-# Context section documents ("kropath-controller watches PipesConfig CRs alongside
+# Context section documents ("kropath-aws-controller watches PipesConfig CRs alongside
 # KropathConfig and writes...") and internal/cascade/pipes.go implements. This suite
 # exercises that documented, implemented, but un-numbered behavior directly —
 # flagged to Spec Analyst as a spec gap (every sibling *Config spec enumerates this

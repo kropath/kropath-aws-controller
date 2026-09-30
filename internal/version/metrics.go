@@ -6,7 +6,7 @@ package version
 import (
 	"runtime"
 
-	"github.com/kropath/kropath-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/features"
 	"github.com/prometheus/client_golang/prometheus"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
@@ -21,7 +21,7 @@ func registerMetrics(r prometheus.Registerer, ver, gitCommit, goVersion string, 
 	bi := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "kropath_build_info",
-			Help: "Build information about the kropath-controller binary (constant 1, labels carry the values).",
+			Help: "Build information about the kropath-aws-controller binary (constant 1, labels carry the values).",
 		},
 		[]string{"version", "git_commit", "go_version"},
 	)

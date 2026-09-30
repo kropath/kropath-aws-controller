@@ -234,7 +234,7 @@ spec:
                 effectiveConfig:
                   type: object
                   description: >-
-                    Pre-merged MSK governance config written by kropath-controller.
+                    Pre-merged MSK governance config written by kropath-aws-controller.
                     RGDs read exclusively from this field via a single externalRef lookup.
                   properties:
                     mandatory:

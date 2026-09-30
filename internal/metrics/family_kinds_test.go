@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/features"
 )
 
 // TestFamilyConfigKindsMatchesFeatures keeps the familyConfigKinds literal

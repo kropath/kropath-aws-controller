@@ -24,7 +24,7 @@
 #
 # AC-12 (lockRule true from global KropathConfig overrides RecycleBinConfig) is
 # intentionally NOT covered here. It requires KropathConfig.spec.mandatory.ebsrecyclebin,
-# a field the kropath-controller Go cascade (internal/cascade/ebsrecyclebin.go,
+# a field the kropath-aws-controller Go cascade (internal/cascade/ebsrecyclebin.go,
 # feat(KRO-1039)) already reads, but which was never added to the real KropathConfig
 # CRD in kropath-aws -- unlike every other family section (KRO-305, KRO-728, KRO-866,
 # etc.), RecycleBin never got its companion "add <family> section to KropathConfig CRD"

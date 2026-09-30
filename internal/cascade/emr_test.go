@@ -17,7 +17,7 @@ package cascade_test
 import (
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/cascade"
+	"github.com/kropath/kropath-aws-controller/internal/cascade"
 )
 
 // emptyEMRKropath is the zero-value KropathSection — no enforcement at that level.

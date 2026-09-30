@@ -65,6 +65,6 @@ jobs:
             GIT_COMMIT=${{ steps.sha.outputs.short }}
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
           tags: |
-            ghcr.io/kropath/kropath-controller:${{ needs.release-please.outputs.tag_name }}
-            ghcr.io/kropath/kropath-controller:sha-${{ steps.sha.outputs.short }}
-            ghcr.io/kropath/kropath-controller:latest
+            ghcr.io/kropath/kropath-aws-controller:${{ needs.release-please.outputs.tag_name }}
+            ghcr.io/kropath/kropath-aws-controller:sha-${{ steps.sha.outputs.short }}
+            ghcr.io/kropath/kropath-aws-controller:latest

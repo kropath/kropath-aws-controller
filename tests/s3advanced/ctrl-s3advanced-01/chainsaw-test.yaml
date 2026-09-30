@@ -22,7 +22,7 @@
 #   Each step owns a distinct set of resource names (ac<N>-*). The controller
 #   pairs a namespaced config with its kro-system counterpart by *name*, so a
 #   per-step name isolates each step completely — no step can shadow another.
-#   See kropath-controller docs/frequent-chainsaw-errors.md §6 for the rationale.
+#   See kropath-aws-controller docs/frequent-chainsaw-errors.md §6 for the rationale.
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
