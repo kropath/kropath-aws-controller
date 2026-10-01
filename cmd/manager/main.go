@@ -13,11 +13,11 @@ import (
 	goruntime "runtime"
 	"time"
 
-	"github.com/kropath/kropath-controller/api/v1alpha1"
-	"github.com/kropath/kropath-controller/internal/features"
-	"github.com/kropath/kropath-controller/internal/metrics"
-	"github.com/kropath/kropath-controller/internal/registry"
-	"github.com/kropath/kropath-controller/internal/version"
+	"github.com/kropath/kropath-aws-controller/api/v1alpha1"
+	"github.com/kropath/kropath-aws-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/metrics"
+	"github.com/kropath/kropath-aws-controller/internal/registry"
+	"github.com/kropath/kropath-aws-controller/internal/version"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/discovery"
@@ -98,7 +98,7 @@ func main() {
 		HealthProbeBindAddress:  probeAddr,
 		LeaderElection:          true,
 		LeaderElectionNamespace: leaderElectionNamespace(),
-		LeaderElectionID:        "kropath-controller.aws.kropath.run",
+		LeaderElectionID:        "kropath-aws-controller.aws.kropath.run",
 	})
 	if err != nil {
 		ctrl.Log.Error(err, "unable to start manager")

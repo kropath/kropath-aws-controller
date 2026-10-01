@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/kropath/kropath-controller/internal/metrics"
+	"github.com/kropath/kropath-aws-controller/internal/metrics"
 )
 
 // KropathConfigGVK is the GVK that must be served before any reconciler starts.
@@ -56,7 +56,7 @@ func GatherServedGVKs(dc ResourceLister) (map[schema.GroupVersionKind]bool, erro
 func (c *Coordinator) RunGate(bctx BuildCtx, servedGVKs map[schema.GroupVersionKind]bool) error {
 	if !servedGVKs[KropathConfigGVK] {
 		return fmt.Errorf("startup gate: %s/%s %s is not served — "+
-			"install the KropathConfig CRD before starting kropath-controller",
+			"install the KropathConfig CRD before starting kropath-aws-controller",
 			KropathConfigGVK.Group, KropathConfigGVK.Version, KropathConfigGVK.Kind)
 	}
 

@@ -5,7 +5,7 @@
 // it satisfies the account/region placement preconditions kropath depends on
 // (ADR-015 §5.8.4, KRO-1139, KRO-1141). It is a best-effort, read-only
 // diagnostic — it never modifies cluster state and it is not a substitute
-// for the runtime annotation checks kropath-controller performs on every
+// for the runtime annotation checks kropath-aws-controller performs on every
 // reconcile.
 //
 // Usage:
@@ -33,7 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kropath/kropath-controller/internal/carmcheck"
+	"github.com/kropath/kropath-aws-controller/internal/carmcheck"
 )
 
 func main() {

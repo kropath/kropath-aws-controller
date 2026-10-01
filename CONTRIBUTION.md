@@ -1,6 +1,6 @@
-# Contributing to kropath-controller
+# Contributing to kropath-aws-controller
 
-Thanks for your interest in kropath-controller. This project is **experimental** and moving
+Thanks for your interest in kropath-aws-controller. This project is **experimental** and moving
 quickly — please read the status notice in the [README](README.md) before you build anything on
 top of it.
 
@@ -15,7 +15,7 @@ request directly.
 **New features / architecture → Start a GitHub Issue**
 
 Feature requests are very welcome — open an
-[issue](https://github.com/kropath/kropath-controller/issues). Please note that **we are not
+[issue](https://github.com/kropath/kropath-aws-controller/issues). Please note that **we are not
 accepting pull requests for features yet.** Accepted requests are added to the development
 roadmap and implemented by the maintainers; the issue is where the design gets agreed and where
 you can follow progress.

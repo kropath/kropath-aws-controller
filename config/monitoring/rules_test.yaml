@@ -44,7 +44,7 @@ tests:
           - exp_labels:
               reason: MissingRegionAnnotation
               severity: warning
-              component: kropath-controller
+              component: kropath-aws-controller
             exp_annotations:
               summary: "Placement is rejecting namespaces (MissingRegionAnnotation)."
               description: "A sustained failure rate usually means a bad onboarding batch."
@@ -76,7 +76,7 @@ tests:
         exp_alerts:
           - exp_labels:
               severity: critical
-              component: kropath-controller
+              component: kropath-aws-controller
             exp_annotations:
               summary: "No label-injection controller is registered for ."
               description: >-
@@ -96,7 +96,7 @@ tests:
           - exp_labels:
               group: gcp.kropath.run
               severity: critical
-              component: kropath-controller
+              component: kropath-aws-controller
             exp_annotations:
               summary: "No label-injection controller is registered for gcp.kropath.run."
               description: >-

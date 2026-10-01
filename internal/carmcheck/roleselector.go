@@ -28,7 +28,7 @@ import (
 // iamRoleSelectorListGVK identifies ACK's cluster-scoped CARM-alternative
 // CRD (group services.k8s.aws, not iam.services.k8s.aws — verified against
 // aws-controllers-k8s/iam-controller's
-// helm/crds/services.k8s.aws_iamroleselectors.yaml). kropath-controller does
+// helm/crds/services.k8s.aws_iamroleselectors.yaml). kropath-aws-controller does
 // not vendor ACK's IAM API types, so this is read as unstructured.
 var iamRoleSelectorListGVK = schema.GroupVersionKind{
 	Group:   "services.k8s.aws",

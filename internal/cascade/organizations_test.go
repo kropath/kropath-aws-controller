@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/cascade"
+	"github.com/kropath/kropath-aws-controller/internal/cascade"
 )
 
 // Zero-value sentinels used across tests.

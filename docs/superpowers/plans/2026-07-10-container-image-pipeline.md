@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a Dockerfile for kropath-controller, a `make` workflow to build/push the image locally, and a CI job that build-validates the image on every PR and pushes it to GitHub Container Registry (ghcr.io) on merges to `main`.
+**Goal:** Add a Dockerfile for kropath-aws-controller, a `make` workflow to build/push the image locally, and a CI job that build-validates the image on every PR and pushes it to GitHub Container Registry (ghcr.io) on merges to `main`.
 
 **Architecture:** A multi-stage Dockerfile compiles `./cmd/manager` in a `golang:1.26.5` builder stage and copies the static binary into a `gcr.io/distroless/static:nonroot` runtime stage. The Makefile gets two new targets (`docker-build`, `docker-push`) using pinned image-name/tag variables. CI adds an `image` job (parallel to the existing `e2e` job, gated on `lint`/`unit`/`security`) that runs `docker/build-push-action`, pushing only on `push` events to `main`.
 
@@ -12,11 +12,11 @@
 
 - Go version for the builder stage: `1.26.5` (from `go.mod`, must match exactly — see `CLAUDE.md` version-pin convention).
 - Runtime base image: `gcr.io/distroless/static:nonroot` (no shell, non-root by default) — per `docs/STANDARDS.md` "Security First: Default to secure."
-- Registry: `ghcr.io/kropath`, image name `kropath-controller`.
+- Registry: `ghcr.io/kropath`, image name `kropath-aws-controller`.
 - Tags: `latest` and `sha-<short-sha>` on push to `main`; no tags pushed on PRs (build-only).
 - Auth: built-in `GITHUB_TOKEN` via `docker/login-action` — no new repo secrets.
 - Binary entrypoint ports: `8080` (metrics), `8081` (health probes) — from `cmd/manager/main.go` flag defaults (`-metrics-bind-address=:8080`, `-health-probe-bind-address=:8081`).
-- Module path: `github.com/kropath/kropath-controller`; build target: `./cmd/manager`.
+- Module path: `github.com/kropath/kropath-aws-controller`; build target: `./cmd/manager`.
 - Version pins for CI tooling live in both `Makefile` (top block) and `.github/workflows/ci.yaml` (`env:` block) and must stay in sync per the existing repo convention.
 
 ---
@@ -87,19 +87,19 @@ ENTRYPOINT ["/kropath-operator"]
 
 - [ ] **Step 3: Build the image locally**
 
-Run: `docker build -t kropath-controller:test .`
-Expected: build completes successfully, final line is `Successfully tagged kropath-controller:test` (or buildkit's equivalent `naming to docker.io/library/kropath-controller:test done`).
+Run: `docker build -t kropath-aws-controller:test .`
+Expected: build completes successfully, final line is `Successfully tagged kropath-aws-controller:test` (or buildkit's equivalent `naming to docker.io/library/kropath-aws-controller:test done`).
 
 - [ ] **Step 4: Smoke-test the image**
 
-Run: `docker run --rm kropath-controller:test --help`
+Run: `docker run --rm kropath-aws-controller:test --help`
 Expected: prints flag usage (including `-metrics-bind-address`, `-health-probe-bind-address`, `-enable-poldoc`, `-enable-kms-cascade`) and exits with status `0`. Verify exit code with `echo $?` immediately after — expect `0`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add Dockerfile .dockerignore
-git commit -m "feat: add Dockerfile for kropath-controller image"
+git commit -m "feat: add Dockerfile for kropath-aws-controller image"
 ```
 
 ---
@@ -119,7 +119,7 @@ In `Makefile`, after the existing `BINARY`/`MAIN_PKG` lines in the `# ─── 
 
 ```makefile
 IMAGE_REGISTRY   := ghcr.io/kropath
-IMAGE_NAME       := kropath-controller
+IMAGE_NAME       := kropath-aws-controller
 IMAGE_TAG        ?= $(shell git rev-parse --short HEAD)
 ```
 
@@ -177,7 +177,7 @@ Expected: output includes lines for `docker-build` and `docker-push` with their 
 - [ ] **Step 5: Run `make docker-build` and confirm the image tags**
 
 Run: `make docker-build`
-Expected: exits `0`. Then run `docker images ghcr.io/kropath/kropath-controller` and confirm two rows, tagged with the current short SHA (`git rev-parse --short HEAD`) and `latest`.
+Expected: exits `0`. Then run `docker images ghcr.io/kropath/kropath-aws-controller` and confirm two rows, tagged with the current short SHA (`git rev-parse --short HEAD`) and `latest`.
 
 - [ ] **Step 6: Commit**
 
@@ -195,7 +195,7 @@ git commit -m "feat: add docker-build and docker-push Makefile targets"
 
 **Interfaces:**
 - Consumes: `Dockerfile` (Task 1) at repo root; registry/name values from Global Constraints (kept in sync with Task 2's Makefile variables by convention, not by shared code).
-- Produces: on `pull_request` events, a build-only CI check named `Build image`. On `push` to `main`, publishes `ghcr.io/kropath/kropath-controller:latest` and `ghcr.io/kropath/kropath-controller:sha-<short-sha>`.
+- Produces: on `pull_request` events, a build-only CI check named `Build image`. On `push` to `main`, publishes `ghcr.io/kropath/kropath-aws-controller:latest` and `ghcr.io/kropath/kropath-aws-controller:sha-<short-sha>`.
 
 - [ ] **Step 1: Add the `image` job**
 
@@ -231,8 +231,8 @@ In `.github/workflows/ci.yaml`, insert a new job after `security:` and before `e
           context: .
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           tags: |
-            ghcr.io/kropath/kropath-controller:latest
-            ghcr.io/kropath/kropath-controller:sha-${{ github.sha }}
+            ghcr.io/kropath/kropath-aws-controller:latest
+            ghcr.io/kropath/kropath-aws-controller:sha-${{ github.sha }}
 ```
 
 - [ ] **Step 2: Validate workflow YAML syntax**
@@ -262,5 +262,5 @@ Expected: push succeeds; on GitHub, the PR's checks list now includes `Build ima
 ## Self-Review Notes
 
 - **Spec coverage:** Dockerfile (Task 1) ✅, `.dockerignore` (Task 1) ✅, Makefile targets (Task 2) ✅, CI build-on-PR/push-on-main job (Task 3) ✅, ghcr.io + GITHUB_TOKEN auth (Task 3) ✅, image tags `latest`/sha (Task 2 + Task 3) ✅. Multi-arch, signing, and manifest updates are explicitly out of scope per the spec and are not tasked here.
-- **Type/naming consistency:** `IMAGE_REGISTRY=ghcr.io/kropath`, `IMAGE_NAME=kropath-controller` used identically in Task 2 (Makefile) and Task 3 (CI tags), matching the spec's Global Constraints.
+- **Type/naming consistency:** `IMAGE_REGISTRY=ghcr.io/kropath`, `IMAGE_NAME=kropath-aws-controller` used identically in Task 2 (Makefile) and Task 3 (CI tags), matching the spec's Global Constraints.
 - **No placeholders:** all code blocks are complete and copy-pasteable; no TBD/TODO markers.

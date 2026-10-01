@@ -6,7 +6,7 @@ package version_test
 import (
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/version"
+	"github.com/kropath/kropath-aws-controller/internal/version"
 )
 
 func TestDefaultValuesAreNonEmpty(t *testing.T) {

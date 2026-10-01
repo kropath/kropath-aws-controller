@@ -226,7 +226,7 @@ spec:
                 effectiveConfig:
                   type: object
                   description: >-
-                    Pre-merged SQS governance config written by kropath-controller.
+                    Pre-merged SQS governance config written by kropath-aws-controller.
                     RGDs read exclusively from this field via a single resources.get() call.
                   properties:
                     mandatory:

@@ -43,7 +43,7 @@ func testScheme(t *testing.T) *runtime.Scheme {
 		t.Fatalf("AddToScheme appsv1: %v", err)
 	}
 	// Register the ACK IAMRoleSelector CRD as an unstructured type so the
-	// fake client can List/Get it without kropath-controller vendoring
+	// fake client can List/Get it without kropath-aws-controller vendoring
 	// ACK's IAM API types.
 	sch.AddKnownTypeWithName(iamRoleSelectorGVK, &unstructured.Unstructured{})
 	sch.AddKnownTypeWithName(iamRoleSelectorListGVK, &unstructured.UnstructuredList{})

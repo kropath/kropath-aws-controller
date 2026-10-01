@@ -81,7 +81,7 @@ The decisive step was checking whether the controller was still alive *after* th
 rather than inspecting the failing suites:
 
 ```
-$ P=$(cat /tmp/kropath-controller/pid); kill -0 "$P" && echo ALIVE || echo DEAD
+$ P=$(cat /tmp/kropath-aws-controller/pid); kill -0 "$P" && echo ALIVE || echo DEAD
 DEAD
 $ curl -fsS http://127.0.0.1:18081/readyz
 curl: (7) Failed to connect to 127.0.0.1 port 18081

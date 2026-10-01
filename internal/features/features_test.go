@@ -12,9 +12,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kropath/kropath-controller/api/v1alpha1"
-	"github.com/kropath/kropath-controller/internal/features"
-	"github.com/kropath/kropath-controller/internal/registry"
+	"github.com/kropath/kropath-aws-controller/api/v1alpha1"
+	"github.com/kropath/kropath-aws-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/registry"
 )
 
 // helperPackages lists directories under internal/reconciler/ that contain shared

@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kropath/kropath-controller/api/v1alpha1"
-	"github.com/kropath/kropath-controller/internal/cascade"
-	"github.com/kropath/kropath-controller/internal/reconciler/util"
+	"github.com/kropath/kropath-aws-controller/api/v1alpha1"
+	"github.com/kropath/kropath-aws-controller/internal/cascade"
+	"github.com/kropath/kropath-aws-controller/internal/reconciler/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"

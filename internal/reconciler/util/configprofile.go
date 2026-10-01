@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kropath/kropath-controller/internal/metrics"
+	"github.com/kropath/kropath-aws-controller/internal/metrics"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,7 +35,7 @@ const (
 	// instead of a per-family literal.
 	DefaultConfigProfile = "general-policy"
 
-	// ConfigProfileResolvedConditionType names the condition kropath-controller
+	// ConfigProfileResolvedConditionType names the condition kropath-aws-controller
 	// publishes on a <ResourceFamily>Config CR describing whether the global-tier
 	// profile lookup resolved directly, via the ADR-015 §5.9 fallthrough hop, or
 	// not at all. ADR-015 §5.9: "skipping is legal; skipping invisibly is not."

@@ -17,7 +17,7 @@
 # aws-mwaa-01-mwaaconfig.md's Acceptance Criteria table (AC-1 through AC-10) covers
 # only CRD-level x-kubernetes-validations and CRD-acceptance scenarios (tested in
 # kropath-aws); it has no entry for the effectiveConfig cascade merge that its own
-# "kropath-controller pre-merges all governance layers... and writes
+# "kropath-aws-controller pre-merges all governance layers... and writes
 # status.effectiveConfig" statement (Context section) and internal/cascade/mwaa.go
 # implement. This suite exercises that documented, implemented, but un-numbered
 # behavior directly — flagged to Spec Analyst as a spec gap (every sibling

@@ -1,4 +1,4 @@
-# kropath-controller metrics
+# kropath-aws-controller metrics
 
 Operator-facing reference for every metric this controller exposes on `/metrics`
 (port `8080` by default, `--metrics-bind-address`) plus the alerting rules shipped
@@ -165,7 +165,7 @@ CI (`make monitoring-verify`) fails if it drifts from `rules.yaml`.
 | `KropathReconcilerPendingTooLong` | warning | 5m | A reconciler has been pending (its CRD missing) for over an hour |
 | `KropathMetricsCollectorFailing` | warning | 10m | A collector cannot list; its metric's series are silently absent |
 
-Every rule carries `component: kropath-controller` so a consumer can route
+Every rule carries `component: kropath-aws-controller` so a consumer can route
 every alert from this operator to one receiver without enumerating alert
 names. `severity: critical` means tenant workloads are or will be broken;
 `severity: warning` means degraded or blind, with no tenant impact yet. This
@@ -190,6 +190,6 @@ make deploy-monitoring   # kubectl apply -k config/monitoring — requires the
                           # Prometheus Operator CRDs already installed
 ```
 
-`config/monitoring/dashboards/kropath-controller.json` ships as a plain file
+`config/monitoring/dashboards/kropath-aws-controller.json` ships as a plain file
 for the consumer's own provisioning (e.g. a Grafana sidecar `ConfigMap`) and
 is not part of the kustomization.

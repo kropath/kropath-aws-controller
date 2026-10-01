@@ -1,4 +1,4 @@
-module github.com/kropath/kropath-controller
+module github.com/kropath/kropath-aws-controller
 
 go 1.26.6
 

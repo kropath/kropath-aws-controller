@@ -28,8 +28,8 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	"github.com/kropath/kropath-controller/internal/metrics"
-	"github.com/kropath/kropath-controller/internal/reconciler/util"
+	"github.com/kropath/kropath-aws-controller/internal/metrics"
+	"github.com/kropath/kropath-aws-controller/internal/reconciler/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	corev1apply "k8s.io/client-go/applyconfigurations/core/v1"

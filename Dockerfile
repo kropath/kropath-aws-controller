@@ -36,9 +36,9 @@ COPY internal/ internal/
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
     -ldflags "-s -w \
-        -X github.com/kropath/kropath-controller/internal/version.Version=${VERSION} \
-        -X github.com/kropath/kropath-controller/internal/version.GitCommit=${GIT_COMMIT} \
-        -X github.com/kropath/kropath-controller/internal/version.BuildDate=${BUILD_DATE}" \
+        -X github.com/kropath/kropath-aws-controller/internal/version.Version=${VERSION} \
+        -X github.com/kropath/kropath-aws-controller/internal/version.GitCommit=${GIT_COMMIT} \
+        -X github.com/kropath/kropath-aws-controller/internal/version.BuildDate=${BUILD_DATE}" \
     -o /kropath-operator ./cmd/manager
 
 FROM gcr.io/distroless/static:nonroot
@@ -51,7 +51,7 @@ ARG BUILD_DATE=unknown
 LABEL org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${GIT_COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
-      org.opencontainers.image.source="https://github.com/kropath/kropath-controller"
+      org.opencontainers.image.source="https://github.com/kropath/kropath-aws-controller"
 
 WORKDIR /
 

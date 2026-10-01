@@ -17,7 +17,7 @@ package metrics
 import (
 	"context"
 
-	"github.com/kropath/kropath-controller/api/v1alpha1"
+	"github.com/kropath/kropath-aws-controller/api/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/reconciler/util"
+	"github.com/kropath/kropath-aws-controller/internal/reconciler/util"
 )
 
 func TestReportHasBlocking(t *testing.T) {

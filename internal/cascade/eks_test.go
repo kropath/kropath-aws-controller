@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/cascade"
+	"github.com/kropath/kropath-aws-controller/internal/cascade"
 )
 
 func boolPtrEKS(b bool) *bool { return &b }

@@ -94,7 +94,7 @@ func checkRoleAccountMap(ctx context.Context, c client.Client, opts Options, man
 		account := ns.Annotations[ownerAccountIDAnnotation]
 		if account == "" {
 			// Annotation presence/validity is ADR-015 §5.8.2 rule 1, a
-			// runtime concern for kropath-controller's own reconciler
+			// runtime concern for kropath-aws-controller's own reconciler
 			// (KRO-1128), not this install-conformance checker.
 			continue
 		}

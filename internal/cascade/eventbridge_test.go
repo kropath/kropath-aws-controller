@@ -17,7 +17,7 @@ package cascade_test
 import (
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/cascade"
+	"github.com/kropath/kropath-aws-controller/internal/cascade"
 )
 
 // zeroKropathEB is a zero-value EventBridgeKropathSection (absent source).

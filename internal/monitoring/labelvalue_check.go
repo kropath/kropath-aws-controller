@@ -12,10 +12,10 @@ import (
 	stdlabels "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 
-	"github.com/kropath/kropath-controller/internal/metrics"
-	"github.com/kropath/kropath-controller/internal/reconciler/kropathconfigstatus"
-	"github.com/kropath/kropath-controller/internal/reconciler/policydocument"
-	"github.com/kropath/kropath-controller/internal/reconciler/util"
+	"github.com/kropath/kropath-aws-controller/internal/metrics"
+	"github.com/kropath/kropath-aws-controller/internal/reconciler/kropathconfigstatus"
+	"github.com/kropath/kropath-aws-controller/internal/reconciler/policydocument"
+	"github.com/kropath/kropath-aws-controller/internal/reconciler/util"
 )
 
 // exemptLabels is design §10.2.1's one documented exemption: `package` on

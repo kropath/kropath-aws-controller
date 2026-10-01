@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kropath/kropath-controller/api/v1alpha1"
-	"github.com/kropath/kropath-controller/internal/metrics"
+	"github.com/kropath/kropath-aws-controller/api/v1alpha1"
+	"github.com/kropath/kropath-aws-controller/internal/metrics"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

@@ -43,11 +43,11 @@ spec:
             content: |
               set -e
               output=$(curl -fsS http://127.0.0.1:18080/metrics)
-              mkdir -p /tmp/kropath-controller
+              mkdir -p /tmp/kropath-aws-controller
               echo "$output" | awk '/^kropath_policydocument_unresolved_refs\{/ {sum += $NF} END {print sum+0}' \
-                > /tmp/kropath-controller/ac09-base-unresolved
+                > /tmp/kropath-aws-controller/ac09-base-unresolved
               echo "$output" | awk '/^kropath_policydocument_documents\{reason="SourceNotReady"\}/ {print $NF; found=1} END {if (!found) print 0}' \
-                > /tmp/kropath-controller/ac09-base-notready
+                > /tmp/kropath-aws-controller/ac09-base-notready
         - apply:
             file: ac09-setup.yaml
         - assert:
@@ -58,8 +58,8 @@ spec:
             content: |
               set -e
               output=$(curl -fsS http://127.0.0.1:18080/metrics)
-              base_unresolved=$(cat /tmp/kropath-controller/ac09-base-unresolved)
-              base_notready=$(cat /tmp/kropath-controller/ac09-base-notready)
+              base_unresolved=$(cat /tmp/kropath-aws-controller/ac09-base-unresolved)
+              base_notready=$(cat /tmp/kropath-aws-controller/ac09-base-notready)
 
               sum=$(echo "$output" | awk '/^kropath_policydocument_unresolved_refs\{/ {sum += $NF} END {print sum+0}')
               delta=$((sum - base_unresolved))
@@ -107,9 +107,9 @@ spec:
                 exit 1
               fi
 
-              if grep -q "ac10-doc.*Reconciler error" /tmp/kropath-controller/controller.log 2>/dev/null; then
+              if grep -q "ac10-doc.*Reconciler error" /tmp/kropath-aws-controller/controller.log 2>/dev/null; then
                 echo "FAIL: a Reconciler error was logged for ac10-doc"
-                grep "ac10-doc" /tmp/kropath-controller/controller.log
+                grep "ac10-doc" /tmp/kropath-aws-controller/controller.log
                 exit 1
               fi
               echo "PASS: AC-10 crd_absent recorded, no Reconciler error logged"

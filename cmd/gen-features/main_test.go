@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kropath/kropath-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/features"
 )
 
 // TestGenerate_empty verifies that an empty registry still produces a valid

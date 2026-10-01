@@ -16,7 +16,7 @@ package util
 
 import (
 	"github.com/go-logr/logr"
-	"github.com/kropath/kropath-controller/internal/metrics"
+	"github.com/kropath/kropath-aws-controller/internal/metrics"
 )
 
 // RecordMapFuncListError logs and counts a watch map function's List failure

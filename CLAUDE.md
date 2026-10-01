@@ -2,7 +2,7 @@
 
 ## This Repo
 
-**kropath-controller** — Multi-reconciler `kropath-operator` binary. One `controller-runtime` Manager, one Reconciler struct per feature. Every reconciler registered in `internal/features.All` runs unconditionally — there are no per-feature flags (architecture decision P-1).
+**kropath-aws-controller** — Multi-reconciler `kropath-operator` binary. One `controller-runtime` Manager, one Reconciler struct per feature. Every reconciler registered in `internal/features.All` runs unconditionally — there are no per-feature flags (architecture decision P-1).
 
 ### Reconciler 1 — Config merge (ADR-010)
 

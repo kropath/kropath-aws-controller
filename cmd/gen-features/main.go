@@ -20,7 +20,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kropath/kropath-controller/internal/features"
+	"github.com/kropath/kropath-aws-controller/internal/features"
 )
 
 const outPath = "docs/features.yaml"

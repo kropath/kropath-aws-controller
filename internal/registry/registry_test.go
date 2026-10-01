@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	"github.com/kropath/kropath-controller/internal/registry"
+	"github.com/kropath/kropath-aws-controller/internal/registry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"

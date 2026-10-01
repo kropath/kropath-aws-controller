@@ -1,4 +1,4 @@
-# Frequent Chainsaw Errors — kropath-controller
+# Frequent Chainsaw Errors — kropath-aws-controller
 
 Recurring, non-obvious failure modes in this repo's Chainsaw suites, in the same
 `What Fails / Why / What Works Instead` shape as kropath-aws
@@ -46,8 +46,8 @@ kropath-aws exist purely to work around ACK finalizers and do not transfer here 
 * **Diagnosis:** check liveness *after* the run, before reading any assertion diff:
 
     ```bash
-    P=$(cat /tmp/kropath-controller/pid); kill -0 "$P" && echo ALIVE || echo DEAD
-    tail -30 /tmp/kropath-controller/controller.log   # names the offending kind
+    P=$(cat /tmp/kropath-aws-controller/pid); kill -0 "$P" && echo ALIVE || echo DEAD
+    tail -30 /tmp/kropath-aws-controller/controller.log   # names the offending kind
     ```
 
 * **What Works Instead:** ship a CRD under `tests/fixtures/crds/` for every kind any

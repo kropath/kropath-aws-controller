@@ -17,7 +17,7 @@ package metrics
 import (
 	"context"
 
-	"github.com/kropath/kropath-controller/api/v1alpha1"
+	"github.com/kropath/kropath-aws-controller/api/v1alpha1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

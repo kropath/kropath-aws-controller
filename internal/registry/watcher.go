@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/kropath/kropath-controller/internal/metrics"
+	"github.com/kropath/kropath-aws-controller/internal/metrics"
 )
 
 // Error reason labels for crdWatchErrorsTotal.
