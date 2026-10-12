@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.2](https://github.com/kropath/kropath-aws-controller/compare/v0.15.1...v0.15.2) (2026-10-12)
+
+
+### Dependencies
+
+* bump sigs.k8s.io/controller-runtime ([#171](https://github.com/kropath/kropath-aws-controller/issues/171)) ([9f0ca4e](https://github.com/kropath/kropath-aws-controller/commit/9f0ca4eead693e3e926fe082487a3e252acd7991))
+
 ## [0.15.1](https://github.com/kropath/kropath-aws-controller/compare/v0.15.0...v0.15.1) (2026-09-28)
 
 
